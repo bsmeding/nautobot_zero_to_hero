@@ -1,0 +1,85 @@
+name: nautobot-lab
+topology:
+  nodes:
+    access1:
+      kind: arista_ceos
+      image: ceos:4.34.2F
+      ports:
+        - "50001:22"
+        - "50002:830"
+      env:
+        NAPALM_USERNAME: admin
+        NAPALM_PASSWORD: admin
+        NAPALM_SECRET: admin
+
+    access2:
+      kind: arista_ceos
+      image: ceos:4.34.2F
+      ports:
+        - "50003:22"
+        - "50004:830"
+      env:
+        NAPALM_USERNAME: admin
+        NAPALM_PASSWORD: admin
+        NAPALM_SECRET: admin
+
+    dist1:
+      kind: nokia_srlinux
+      image: ghcr.io/nokia/srlinux
+      ports:
+        - "50005:22"
+        - "50006:830"
+      env:
+        NAPALM_USERNAME: admin
+        NAPALM_PASSWORD: admin
+        NAPALM_SECRET: admin
+
+    rtr1:
+      kind: nokia_srlinux
+      image: ghcr.io/nokia/srlinux
+      ports:
+        - "50007:22"
+        - "50008:830"
+      env:
+        NAPALM_USERNAME: admin
+        NAPALM_PASSWORD: admin
+        NAPALM_SECRET: admin
+
+    ztp:
+      kind: linux
+      image: alpine
+      ports:
+        - "50009:22"
+      env:
+        NAPALM_USERNAME: root
+        NAPALM_PASSWORD: root
+      exec:
+        - /bin/sh -lc 'apk update'
+        - /bin/sh -lc 'apk add --no-cache openssh iproute2 ethtool curl'
+        - /bin/sh -lc 'ssh-keygen -A'
+        - /usr/sbin/sshd -D
+
+
+    mgmt:
+      kind: linux
+      image: alpine
+      ports:
+        - "50010:22"
+      env:
+        NAPALM_USERNAME: root
+        NAPALM_PASSWORD: root
+      exec:
+        - /bin/sh -lc 'apk update'
+        - /bin/sh -lc 'apk add --no-cache openssh iproute2 ethtool curl'
+        - /bin/sh -lc 'ssh-keygen -A'
+        - /usr/sbin/sshd -D
+
+
+  links:
+    - endpoints: ["access1:eth1", "dist1:ethernet-1/1"]
+    - endpoints: ["access2:eth1", "dist1:ethernet-1/2"]
+    - endpoints: ["dist1:ethernet-1/3", "rtr1:ethernet-1/1"]
+
+mgmt:
+  network: clab
+  # ipv4-subnet: 192.168.1.0/24

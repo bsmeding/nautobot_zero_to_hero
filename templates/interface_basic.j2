@@ -1,0 +1,9 @@
+!
+interface {{ interface_name }}
+ description {{ description }}
+ {% if enabled %}
+ no shutdown
+ {% else %}
+ shutdown
+ {% endif %}
+!
