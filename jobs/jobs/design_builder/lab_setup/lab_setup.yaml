@@ -1,0 +1,247 @@
+# Design Builder Pre-flight Configuration
+# Lab Setup for Containerlab Topology
+# Based on: https://netdevops.it/blog/building-a-reusable-network-automation-lab-with-containerlab/
+
+# This file demonstrates the declarative approach to populating Nautobot
+# using Design Builder instead of custom Jobs
+
+---
+# Site Configuration - Using completely unique name to avoid any conflicts
+sites:
+  - name: "Containerlab Demo Lab 2025"
+    slug: "containerlab-demo-lab-2025"
+    status: "active"
+    description: "Containerlab demo lab environment for network automation testing and blog series"
+
+# Device Roles
+device_roles:
+  - name: "Access Switch"
+    slug: "access-switch"
+    color: "green"
+    description: "Access layer switches"
+  - name: "Distribution Switch"
+    slug: "distribution-switch"
+    color: "orange"
+    description: "Distribution layer switches"
+  - name: "Core Router"
+    slug: "core-router"
+    color: "red"
+    description: "Core layer routers"
+
+# Platforms
+platforms:
+  - name: "Arista EOS"
+    slug: "arista-eos"
+    manufacturer: "arista"
+    description: "Arista EOS platform"
+  - name: "Nokia SR Linux"
+    slug: "nokia-srl"
+    manufacturer: "nokia"
+    description: "Nokia SR Linux platform"
+  - name: "Nokia SR OS"
+    slug: "nokia-sros"
+    manufacturer: "nokia"
+    description: "Nokia SR OS platform"
+
+# Tags for organization
+tags:
+  - name: "lab"
+    color: "blue"
+    description: "Lab environment"
+  - name: "containerlab"
+    color: "green"
+    description: "Containerlab environment"
+  - name: "automation"
+    color: "orange"
+    description: "Automation environment"
+  - name: "demo"
+    color: "purple"
+    description: "Demo environment"
+  - name: "blog-series"
+    color: "cyan"
+    description: "Blog series demo"
+  - name: "access"
+    color: "green"
+    description: "Access layer"
+  - name: "distribution"
+    color: "orange"
+    description: "Distribution layer"
+  - name: "core"
+    color: "red"
+    description: "Core layer"
+  - name: "management"
+    color: "purple"
+    description: "Management interfaces"
+  - name: "data"
+    color: "cyan"
+    description: "Data interfaces"
+
+# VLANs
+vlans:
+  - vid: 10
+    name: "Management"
+    description: "Management VLAN"
+    site: "Containerlab Demo Lab 2025"
+    status: "active"
+  - vid: 20
+    name: "Data"
+    description: "Data VLAN"
+    site: "Containerlab Demo Lab 2025"
+    status: "active"
+  - vid: 30
+    name: "Voice"
+    description: "Voice VLAN"
+    site: "Containerlab Demo Lab 2025"
+    status: "active"
+
+# IP Prefixes
+prefixes:
+  - prefix: "192.168.1.0/24"
+    site: "Containerlab Demo Lab 2025"
+    status: "active"
+    description: "Management network for lab devices"
+
+# Devices
+devices:
+  # Access Layer - Arista cEOS
+  - name: "access1"
+    site: "Containerlab Demo Lab 2025"
+    device_role: "Access Switch"
+    platform: "Arista EOS"
+    status: "active"
+    description: "Access Switch 1 - Arista cEOS"
+    tags: ["lab", "containerlab", "automation", "demo", "blog-series", "access"]
+    interfaces:
+      - name: "eth0"
+        type: "1000base-t"
+        enabled: true
+        description: "Management interface"
+        tags: ["management"]
+        ip_addresses:
+          - address: "192.168.1.11/24"
+            status: "active"
+            description: "Management IP"
+      - name: "Ethernet1"
+        type: "1000base-t"
+        enabled: true
+        description: "Link to dist1"
+        tags: ["data"]
+      - name: "Ethernet2"
+        type: "1000base-t"
+        enabled: true
+        description: "Access port"
+        tags: ["data"]
+      - name: "Ethernet3"
+        type: "1000base-t"
+        enabled: true
+        description: "Access port"
+        tags: ["data"]
+
+  - name: "access2"
+    site: "Containerlab Demo Lab 2025"
+    device_role: "Access Switch"
+    platform: "Arista EOS"
+    status: "active"
+    description: "Access Switch 2 - Arista cEOS"
+    tags: ["lab", "containerlab", "automation", "demo", "blog-series", "access"]
+    interfaces:
+      - name: "eth0"
+        type: "1000base-t"
+        enabled: true
+        description: "Management interface"
+        tags: ["management"]
+        ip_addresses:
+          - address: "192.168.1.12/24"
+            status: "active"
+            description: "Management IP"
+      - name: "Ethernet1"
+        type: "1000base-t"
+        enabled: true
+        description: "Link to dist1"
+        tags: ["data"]
+      - name: "Ethernet2"
+        type: "1000base-t"
+        enabled: true
+        description: "Access port"
+        tags: ["data"]
+      - name: "Ethernet3"
+        type: "1000base-t"
+        enabled: true
+        description: "Access port"
+        tags: ["data"]
+
+  # Distribution Layer - Nokia SR Linux
+  - name: "dist1"
+    site: "Containerlab Demo Lab 2025"
+    device_role: "Distribution Switch"
+    platform: "Nokia SR Linux"
+    status: "active"
+    description: "Distribution Switch - Nokia SR Linux"
+    tags: ["lab", "containerlab", "automation", "demo", "blog-series", "distribution"]
+    interfaces:
+      - name: "ethernet-1/1"
+        type: "1000base-t"
+        enabled: true
+        description: "Link to access1"
+        tags: ["data"]
+      - name: "ethernet-1/2"
+        type: "1000base-t"
+        enabled: true
+        description: "Link to access2"
+        tags: ["data"]
+      - name: "ethernet-1/3"
+        type: "1000base-t"
+        enabled: true
+        description: "Link to rtr1"
+        tags: ["data"]
+      - name: "eth0"
+        type: "1000base-t"
+        enabled: true
+        description: "Management interface"
+        tags: ["management"]
+        ip_addresses:
+          - address: "192.168.1.21/24"
+            status: "active"
+            description: "Management IP"
+
+  # Core Layer - Nokia SR OS
+  - name: "rtr1"
+    site: "Containerlab Demo Lab 2025"
+    device_role: "Core Router"
+    platform: "Nokia SR OS"
+    status: "active"
+    description: "Core Router - Nokia SR OS"
+    tags: ["lab", "containerlab", "automation", "demo", "blog-series", "core"]
+    interfaces:
+      - name: "ethernet-1/1"
+        type: "1000base-t"
+        enabled: true
+        description: "Link to dist1"
+        tags: ["data"]
+      - name: "eth0"
+        type: "1000base-t"
+        enabled: true
+        description: "Management interface"
+        tags: ["management"]
+        ip_addresses:
+          - address: "192.168.1.1/24"
+            status: "active"
+            description: "Management IP"
+
+# Cable Connections (optional - can be added later)
+# cables:
+#   - termination_a_type: "dcim.interface"
+#     termination_a: ["access1", "Ethernet1"]
+#     termination_b_type: "dcim.interface"
+#     termination_b: ["dist1", "ethernet-1/1"]
+#     status: "connected"
+#   - termination_a_type: "dcim.interface"
+#     termination_a: ["access2", "Ethernet1"]
+#     termination_b_type: "dcim.interface"
+#     termination_b: ["dist1", "ethernet-1/2"]
+#     status: "connected"
+#   - termination_a_type: "dcim.interface"
+#     termination_a: ["dist1", "ethernet-1/3"]
+#     termination_b_type: "dcim.interface"
+#     termination_b: ["rtr1", "ethernet-1/1"]
+#     status: "connected"

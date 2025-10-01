@@ -1,0 +1,28 @@
+---
+# GraphQL Queries
+# GraphQL queries for Nautobot data retrieval and manipulation
+# Based on actual API response from /extras/graphql-queries/
+graphql_queries:
+  # Test Query (based on API response)
+  - "!create_or_update:name": "test-query"
+    query: |
+      {
+        devices{
+          name
+          tenant {
+            id
+          }
+          created
+          primary_ip {
+            id
+          }
+          primary_ip4 {
+            id
+          }
+        }
+        secrets{
+          name
+          description
+        }
+      }
+    variables: {}

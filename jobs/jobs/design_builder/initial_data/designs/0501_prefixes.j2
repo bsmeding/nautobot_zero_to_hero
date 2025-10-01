@@ -1,0 +1,52 @@
+---
+# RIRs
+rirs:
+  - "!create_or_update:name": "ARIN"
+    description: "American Registry for Internet Numbers"
+    is_private: false
+  - "!create_or_update:name": "RIPE NCC"
+    description: "RIPE Network Coordination Centre"
+    is_private: false
+  - "!create_or_update:name": "APNIC"
+    description: "Asia Pacific Network Information Centre"
+    is_private: false
+  - "!create_or_update:name": "LACNIC"
+    description: "Latin America and Caribbean Network Information Centre"
+    is_private: false
+  - "!create_or_update:name": "AfriNIC"
+    description: "African Network Information Centre"
+    is_private: false
+  - "!create_or_update:name": "RFC 1918"
+    description: "Private address space as defined by RFC 1918"
+    is_private: true
+  - "!create_or_update:name": "RFC 4193"
+    description: "Unique Local Addresses as defined by RFC 4193"
+    is_private: true
+  - "!create_or_update:name": "RFC 6598"
+    description: "Shared Address Space as defined by RFC 6598"
+    is_private: true
+  - "!create_or_update:name": "RFC 3927"
+    description: "Link-Local Addresses as defined by RFC 3927"
+    is_private: true
+
+# Prefixes
+prefixes:
+  # Basic container prefixes - no namespace references for now
+  - "!create_or_update:prefix": "10.0.0.0/8"
+    type: "container"
+    status__name: "Active"
+    description: "Private network space for internal networks"
+    rir__name: "RFC 1918"
+    date_allocated: "2025-01-01"
+  - "!create_or_update:prefix": "172.16.0.0/12"
+    type: "container"
+    status__name: "Active"
+    description: "Private network space for infrastructure"
+    rir__name: "RFC 1918"
+    date_allocated: "2025-01-01"
+  - "!create_or_update:prefix": "172.20.20.0/24"
+    type: "network"
+    status__name: "Active"
+    description: "NetDevOps containerlab network"
+    rir__name: "RFC 1918"
+    date_allocated: "2025-01-01"

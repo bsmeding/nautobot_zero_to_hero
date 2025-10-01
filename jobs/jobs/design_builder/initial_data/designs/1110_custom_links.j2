@@ -1,0 +1,39 @@
+# Custom Links Design File
+# Defines custom links that appear in object detail views
+
+custom_links:
+  # Device Management Links
+  - "!create_or_update:name": "SSH Access"
+    content_type:
+      "!get:app_label": "dcim"
+      "!get:model": "device"
+    text: "SSH to Device"
+    target_url: "ssh://device-ip-address"
+    weight: 100
+    group_name: "Management"
+    button_class: "primary"
+    new_window: true
+
+  # IP Address Tools
+  - "!create_or_update:name": "WHOIS Lookup"
+    content_type:
+      "!get:app_label": "ipam"
+      "!get:model": "ipaddress"
+    text: "WHOIS Info"
+    target_url: "https://whois.arin.net/rest/ip/ip-address"
+    weight: 100
+    group_name: "Tools"
+    button_class: "info"
+    new_window: true
+
+  # VLAN Documentation
+  - "!create_or_update:name": "VLAN Documentation"
+    content_type:
+      "!get:app_label": "ipam"
+      "!get:model": "vlan"
+    text: "View Docs"
+    target_url: "https://docs.company.com/vlans/vlan-id"
+    weight: 100
+    group_name: "Documentation"
+    button_class: "success"
+    new_window: false

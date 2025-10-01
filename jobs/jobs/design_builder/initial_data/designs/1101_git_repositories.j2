@@ -1,0 +1,18 @@
+---
+# Git Repositories
+# Git repositories for Nautobot plugins and customizations
+# Based on actual API response from /extras/git-repositories/
+git_repositories:
+  # Nautobot Design Builder Demo Designs
+  - "!create_or_update:name": "Nautobot design builder demo designs"
+    remote_url: "https://github.com/nautobot/demo-designs.git"
+    branch: "main"
+    provided_contents:
+      - "extras.job"
+        
+  # Import Device Types
+  - "!create_or_update:name": "import device-types"
+    remote_url: "https://github.com/bsmeding/nautobot_devicetype_library.git"
+    branch: "main"
+    provided_contents:
+      - "extras.job"

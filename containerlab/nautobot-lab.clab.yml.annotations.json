@@ -1,0 +1,79 @@
+{
+  "freeTextAnnotations": [],
+  "groupStyleAnnotations": [],
+  "cloudNodeAnnotations": [],
+  "nodeAnnotations": [
+    {
+      "id": "access1",
+      "icon": "router",
+      "position": {
+        "x": 105,
+        "y": 189
+      },
+      "geoCoordinates": {
+        "lat": 48.78335216544126,
+        "lng": 9.542595573336484
+      }
+    },
+    {
+      "id": "access2",
+      "icon": "router",
+      "position": {
+        "x": 189,
+        "y": 203
+      },
+      "geoCoordinates": {
+        "lat": 49.0235230347154,
+        "lng": 9.128331387446869
+      }
+    },
+    {
+      "id": "dist1",
+      "icon": "router",
+      "position": {
+        "x": 161,
+        "y": 147
+      },
+      "geoCoordinates": {
+        "lat": 49.57752792711122,
+        "lng": 9.760378512251606
+      }
+    },
+    {
+      "id": "rtr1",
+      "icon": "router",
+      "position": {
+        "x": 161,
+        "y": 105
+      },
+      "geoCoordinates": {
+        "lat": 49.399002469162006,
+        "lng": 9.682802439863647
+      }
+    },
+    {
+      "id": "ztp",
+      "icon": "router",
+      "position": {
+        "x": 231,
+        "y": 133
+      },
+      "geoCoordinates": {
+        "lat": 49.29982585689775,
+        "lng": 9.07676153728631
+      }
+    },
+    {
+      "id": "mgmt",
+      "icon": "router",
+      "position": {
+        "x": 231,
+        "y": 161
+      },
+      "geoCoordinates": {
+        "lat": 49.11234684072115,
+        "lng": 9.12005479949905
+      }
+    }
+  ]
+}

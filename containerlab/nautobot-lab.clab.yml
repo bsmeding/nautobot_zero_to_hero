@@ -5,8 +5,8 @@ topology:
       kind: arista_ceos
       image: ceos:4.34.2F
       ports:
-        - "50001:22"
-        - "50002:830"
+        - 50001:22
+        - 50002:830
       env:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
@@ -16,8 +16,8 @@ topology:
       kind: arista_ceos
       image: ceos:4.34.2F
       ports:
-        - "50003:22"
-        - "50004:830"
+        - 50003:22
+        - 50004:830
       env:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
@@ -27,8 +27,8 @@ topology:
       kind: nokia_srlinux
       image: ghcr.io/nokia/srlinux
       ports:
-        - "50005:22"
-        - "50006:830"
+        - 50005:22
+        - 50006:830
       env:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
@@ -38,8 +38,8 @@ topology:
       kind: nokia_srlinux
       image: ghcr.io/nokia/srlinux
       ports:
-        - "50007:22"
-        - "50008:830"
+        - 50007:22
+        - 50008:830
       env:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
@@ -49,7 +49,7 @@ topology:
       kind: linux
       image: alpine
       ports:
-        - "50009:22"
+        - 50009:22
       env:
         NAPALM_USERNAME: root
         NAPALM_PASSWORD: root
@@ -58,13 +58,12 @@ topology:
         - /bin/sh -lc 'apk add --no-cache openssh iproute2 ethtool curl'
         - /bin/sh -lc 'ssh-keygen -A'
         - /usr/sbin/sshd -D
-
 
     mgmt:
       kind: linux
-      image: alpine
+      image: bsmeding/ansible_cicd_debian12
       ports:
-        - "50010:22"
+        - 50010:22
       env:
         NAPALM_USERNAME: root
         NAPALM_PASSWORD: root
@@ -74,11 +73,12 @@ topology:
         - /bin/sh -lc 'ssh-keygen -A'
         - /usr/sbin/sshd -D
 
-
   links:
-    - endpoints: ["access1:eth1", "dist1:ethernet-1/1"]
-    - endpoints: ["access2:eth1", "dist1:ethernet-1/2"]
-    - endpoints: ["dist1:ethernet-1/3", "rtr1:ethernet-1/1"]
+    - endpoints: [ access1:eth1, dist1:ethernet-1/2 ]
+    - endpoints: [ access2:eth1, dist1:ethernet-1/3 ]
+    - endpoints: [ dist1:ethernet-1/1, rtr1:ethernet-1/1 ]
+    - endpoints: [ dist1:ethernet-1/4, ztp:eth1 ]
+    - endpoints: [ dist1:ethernet-1/5, mgmt:eth1 ]
 
 mgmt:
   network: clab

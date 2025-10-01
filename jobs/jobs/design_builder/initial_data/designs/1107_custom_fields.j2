@@ -1,0 +1,39 @@
+---
+# Custom Fields (Extensibility)
+# Custom fields for extending Nautobot data models
+# Mandatory fields: Key, Content Types, Type
+# Optional fields: Label, Description, Required, Default, Weight, Validation Minimum, Validation Maximum, Validation Regex
+
+custom_fields:
+  # IP Address Custom Field
+  - "!create_or_update:key": "ip_owner"
+    content_types:
+      - "!get:app_label": "ipam"
+        "!get:model": "ipaddress"
+    type: "text"
+    label: "IP Owner"
+    description: "Owner of the IP address"
+    required: false
+    weight: 100
+
+  # VLAN Custom Field
+  - "!create_or_update:key": "vlan_purpose"
+    content_types:
+      - "!get:app_label": "ipam"
+        "!get:model": "vlan"
+    type: "select"
+    label: "VLAN Purpose"
+    description: "Purpose of the VLAN"
+    required: false
+    weight: 100
+
+  # Device Custom Field
+  - "!create_or_update:key": "maintenance_window"
+    content_types:
+      - "!get:app_label": "dcim"
+        "!get:model": "device"
+    type: "text"
+    label: "Maintenance Window"
+    description: "Scheduled maintenance window"
+    required: false
+    weight: 200 

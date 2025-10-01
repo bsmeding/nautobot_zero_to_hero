@@ -7,38 +7,25 @@ Based on the lab topology from: https://netdevops.it/blog/building-a-reusable-ne
 This demonstrates how to programmatically create Nautobot objects using Jobs.
 """
 
-from nautobot.extras.jobs import Job, ObjectVar, StringVar, BooleanVar
-from nautobot.dcim.models import Site, Device, DeviceRole, Platform, Interface, InterfaceType
-from nautobot.ipam.models import IPAddress, Prefix, VLAN
-from nautobot.tenancy.models import Tenant
-from nautobot.extras.models import Tag
-from django.core.exceptions import ValidationError
-import ipaddress
+from nautobot.apps.jobs import Job, StringVar, BooleanVar, register_jobs
 
 
 class PreflightLabSetup(Job):
-    """
-    Pre-flight Lab Setup Job
-    
-    Populates Nautobot with the lab topology data from the Containerlab setup.
-    Creates sites, devices, interfaces, and IP addresses for the demo lab.
-    """
+    """Pre-flight lab setup job to populate Nautobot with Containerlab lab topology."""
     
     class Meta:
         name = "Pre-flight Lab Setup"
         description = "Populate Nautobot with Containerlab lab topology data"
-        read_only = False
         has_sensitive_variables = False
-        
-    # Job variables
+
     site_name = StringVar(
-        description="Site name for the lab",
-        default="Main Lab",
+        description="Site name for the lab (will be ignored to avoid conflicts)",
+        default="Lab Data Center",
         required=True
     )
     
     management_subnet = StringVar(
-        description="Management network subnet (CIDR notation)",
+        description="Management subnet (CIDR notation)",
         default="172.20.20.0/24",
         required=True
     )
@@ -49,287 +36,240 @@ class PreflightLabSetup(Job):
     )
     
     create_tags = BooleanVar(
-        description="Create tags for organization",
+        description="Create tags for the lab",
         default=True
     )
 
-    def run(self, data, commit):
-        """
-        Execute the job
-        """
-        self.log_info("Starting pre-flight lab setup...")
-        
-        # Extract variables
-        site_name = data['site_name']
-        management_subnet = data['management_subnet']
-        create_vlans = data['create_vlans']
-        create_tags = data['create_tags']
-        
+    def run(self, site_name, management_subnet, create_vlans, create_tags):
+        self.logger.info("Starting pre-flight lab setup...")
+
         try:
-            # Create or get site
-            site, created = Site.objects.get_or_create(
-                name=site_name,
-                defaults={
-                    'slug': site_name.lower().replace(' ', '-'),
-                    'status': 'active'
-                }
+            # Import models within the job to avoid import issues
+            from nautobot.dcim.models import Location, LocationType, Device, Platform, Interface
+            from nautobot.ipam.models import IPAddress, Prefix, VLAN
+            from nautobot.extras.models import Tag, Role, Status
+            import ipaddress
+
+            # Get the active status
+            try:
+                active_status = Status.objects.get(name='Active')
+            except Status.DoesNotExist:
+                # If 'Active' doesn't exist, try to get the first available status
+                active_status = Status.objects.first()
+                if not active_status:
+                    self.logger.error("No status objects found. Please create at least one status.")
+                    return
+                self.logger.info(f"Using status: {active_status.name}")
+
+            # Create or get Site location type
+            site_type, created = LocationType.objects.get_or_create(
+                name="Site",
+                defaults={'description': "Site location type"}
             )
             if created:
-                self.log_success(f"Created site: {site_name}")
-            else:
-                self.log_info(f"Using existing site: {site_name}")
-            
+                self.logger.info("Created Site location type")
+
+            # Create a completely unique site name using timestamp and job ID
+            import time
+            timestamp = int(time.time())
+            unique_site_name = f"Containerlab-Lab-{timestamp}-{self.job.id}"
+            self.logger.info(f"Creating unique site: {unique_site_name}")
+
+            # Create the site with the unique name
+            site = Location.objects.create(
+                name=unique_site_name,
+                location_type=site_type,
+                slug=f"containerlab-lab-{timestamp}-{self.job.id}",
+                status=active_status
+            )
+            self.logger.info(f"Created site: {unique_site_name}")
+
             # Create tags if requested
             if create_tags:
                 self._create_tags()
-            
+
             # Create management network
-            mgmt_prefix = self._create_management_network(site, management_subnet)
-            
+            mgmt_prefix = self._create_management_network(site, management_subnet, active_status)
+
             # Create VLANs if requested
             if create_vlans:
-                self._create_vlans(site)
-            
+                self._create_vlans(site, active_status)
+
             # Create devices
-            self._create_devices(site, mgmt_prefix)
-            
+            self._create_devices(site, mgmt_prefix, active_status)
+
             # Create interfaces and IP addresses
-            self._create_interfaces_and_ips(site, mgmt_prefix)
-            
-            self.log_success("Pre-flight lab setup completed successfully!")
-            
+            self._create_interfaces_and_ips(site, mgmt_prefix, active_status)
+
+            self.logger.info("Pre-flight lab setup completed successfully!")
+
         except Exception as e:
-            self.log_failure(f"Error during lab setup: {str(e)}")
+            self.logger.error(f"Error during lab setup: {str(e)}")
             raise
-    
+
     def _create_tags(self):
-        """Create organizational tags"""
-        tag_data = [
-            {'name': 'lab', 'color': 'blue'},
-            {'name': 'access', 'color': 'green'},
-            {'name': 'distribution', 'color': 'orange'},
-            {'name': 'core', 'color': 'red'},
-            {'name': 'management', 'color': 'purple'},
-            {'name': 'data', 'color': 'cyan'},
-        ]
+        """Create tags for the lab."""
+        from nautobot.extras.models import Tag, Status
         
-        for tag_info in tag_data:
-            tag, created = Tag.objects.get_or_create(
-                name=tag_info['name'],
-                defaults={'color': tag_info['color']}
-            )
-            if created:
-                self.log_info(f"Created tag: {tag.name}")
-    
-    def _create_management_network(self, site, subnet):
-        """Create management network prefix"""
         try:
-            network = ipaddress.IPv4Network(subnet, strict=False)
-            prefix, created = Prefix.objects.get_or_create(
-                prefix=str(network),
-                site=site,
-                defaults={
-                    'status': 'active',
-                    'description': 'Management network for lab devices'
-                }
-            )
-            if created:
-                self.log_success(f"Created management prefix: {subnet}")
-            return prefix
-        except Exception as e:
-            self.log_warning(f"Could not create management prefix: {str(e)}")
-            return None
-    
-    def _create_vlans(self, site):
-        """Create VLANs for the lab"""
-        vlan_data = [
-            {'vid': 10, 'name': 'Data', 'description': 'Data VLAN'},
-            {'vid': 20, 'name': 'Voice', 'description': 'Voice VLAN'},
-            {'vid': 30, 'name': 'Management', 'description': 'Management VLAN'},
-            {'vid': 100, 'name': 'Native', 'description': 'Native VLAN'},
+            active_status = Status.objects.get(name='Active')
+        except Status.DoesNotExist:
+            active_status = Status.objects.first()
+
+        tags_data = [
+            {'name': 'lab', 'color': 'blue'},
+            {'name': 'containerlab', 'color': 'green'},
+            {'name': 'automation', 'color': 'orange'},
+            {'name': 'demo', 'color': 'purple'}
         ]
         
-        for vlan_info in vlan_data:
-            vlan, created = VLAN.objects.get_or_create(
-                vid=vlan_info['vid'],
-                site=site,
+        for tag_data in tags_data:
+            tag, created = Tag.objects.get_or_create(
+                name=tag_data['name'],
                 defaults={
-                    'name': vlan_info['name'],
-                    'description': vlan_info['description'],
-                    'status': 'active'
+                    'color': tag_data['color'],
+                    'status': active_status
                 }
             )
             if created:
-                self.log_info(f"Created VLAN {vlan.vid}: {vlan.name}")
-    
-    def _create_devices(self, site, mgmt_prefix):
-        """Create devices for the lab topology"""
+                self.logger.info(f"Created tag: {tag.name}")
+
+    def _create_management_network(self, site, management_subnet, status):
+        """Create management network prefix."""
+        from nautobot.ipam.models import Prefix
         
-        # Get or create device roles
-        roles = {}
-        role_data = [
-            ('access', 'Access Switch', 'green'),
-            ('distribution', 'Distribution Switch', 'orange'),
-            ('core', 'Core Router', 'red'),
+        try:
+            prefix = Prefix.objects.get(prefix=management_subnet)
+            self.logger.info(f"Using existing prefix: {management_subnet}")
+        except Prefix.DoesNotExist:
+            prefix = Prefix.objects.create(
+                prefix=management_subnet,
+                status=status,
+                site=site,
+                description="Management network for lab devices"
+            )
+            self.logger.info(f"Created prefix: {management_subnet}")
+        
+        return prefix
+
+    def _create_vlans(self, site, status):
+        """Create VLANs for the lab."""
+        from nautobot.ipam.models import VLAN
+        
+        vlans_data = [
+            {'vid': 10, 'name': 'Management', 'description': 'Management VLAN'},
+            {'vid': 20, 'name': 'Data', 'description': 'Data VLAN'},
+            {'vid': 30, 'name': 'Voice', 'description': 'Voice VLAN'}
         ]
         
-        for role_slug, role_name, color in role_data:
-            role, created = DeviceRole.objects.get_or_create(
-                slug=role_slug,
-                defaults={
-                    'name': role_name,
-                    'color': color
-                }
-            )
-            roles[role_slug] = role
-            if created:
-                self.log_info(f"Created device role: {role_name}")
+        for vlan_data in vlans_data:
+            try:
+                vlan = VLAN.objects.get(vid=vlan_data['vid'], site=site)
+                self.logger.info(f"Using existing VLAN: {vlan_data['name']} (VID: {vlan_data['vid']})")
+            except VLAN.DoesNotExist:
+                vlan = VLAN.objects.create(
+                    vid=vlan_data['vid'],
+                    name=vlan_data['name'],
+                    description=vlan_data['description'],
+                    status=status,
+                    site=site
+                )
+                self.logger.info(f"Created VLAN: {vlan.name} (VID: {vlan.vid})")
+
+    def _create_devices(self, site, mgmt_prefix, status):
+        """Create devices for the lab."""
+        from nautobot.dcim.models import Device, Platform
+        from nautobot.extras.models import Role
         
         # Get or create platforms
         platforms = {}
-        platform_data = [
-            ('arista_eos', 'Arista EOS', 'arista'),
-            ('nokia_srl', 'Nokia SR Linux', 'nokia'),
-        ]
-        
-        for platform_slug, platform_name, manufacturer in platform_data:
+        for platform_name in ['arista_eos', 'nokia_srl', 'nokia_sros']:
             platform, created = Platform.objects.get_or_create(
-                slug=platform_slug,
-                defaults={
-                    'name': platform_name,
-                    'manufacturer': manufacturer
-                }
+                name=platform_name,
+                defaults={'description': f'{platform_name} platform'}
             )
-            platforms[platform_slug] = platform
+            platforms[platform_name] = platform
             if created:
-                self.log_info(f"Created platform: {platform_name}")
-        
-        # Device definitions based on lab topology
-        device_data = [
-            {
-                'name': 'access1',
-                'role': 'access',
-                'platform': 'arista_eos',
-                'mgmt_ip': '172.20.20.11',
-                'description': 'Access Switch 1 - Arista cEOS'
-            },
-            {
-                'name': 'access2',
-                'role': 'access',
-                'platform': 'arista_eos',
-                'mgmt_ip': '172.20.20.12',
-                'description': 'Access Switch 2 - Arista cEOS'
-            },
-            {
-                'name': 'dist1',
-                'role': 'distribution',
-                'platform': 'nokia_srl',
-                'mgmt_ip': '172.20.20.13',
-                'description': 'Distribution Switch - Nokia SR Linux'
-            },
-            {
-                'name': 'rtr1',
-                'role': 'core',
-                'platform': 'nokia_srl',
-                'mgmt_ip': '172.20.20.14',
-                'description': 'Core Router - Nokia SR Linux'
-            },
+                self.logger.info(f"Created platform: {platform_name}")
+
+        # Get or create device roles
+        roles = {}
+        for role_name in ['Access Switch', 'Distribution Switch', 'Router']:
+            role, created = Role.objects.get_or_create(
+                name=role_name,
+                defaults={'description': f'{role_name} role'}
+            )
+            roles[role_name] = role
+            if created:
+                self.logger.info(f"Created role: {role_name}")
+
+        # Device definitions
+        devices_data = [
+            {'name': 'access1', 'role': 'Access Switch', 'platform': 'arista_eos'},
+            {'name': 'access2', 'role': 'Access Switch', 'platform': 'arista_eos'},
+            {'name': 'dist1', 'role': 'Distribution Switch', 'platform': 'nokia_srl'},
+            {'name': 'rtr1', 'role': 'Router', 'platform': 'nokia_sros'}
         ]
         
-        created_devices = []
-        for device_info in device_data:
-            device, created = Device.objects.get_or_create(
-                name=device_info['name'],
-                site=site,
-                defaults={
-                    'device_role': roles[device_info['role']],
-                    'platform': platforms[device_info['platform']],
-                    'status': 'active',
-                    'description': device_info['description']
-                }
-            )
-            
-            if created:
-                self.log_success(f"Created device: {device.name}")
-                created_devices.append((device, device_info['mgmt_ip']))
-            else:
-                self.log_info(f"Using existing device: {device.name}")
+        for device_data in devices_data:
+            try:
+                device = Device.objects.get(name=device_data['name'], site=site)
+                self.logger.info(f"Using existing device: {device_data['name']}")
+            except Device.DoesNotExist:
+                device = Device.objects.create(
+                    name=device_data['name'],
+                    device_type=None,  # Will be set by platform
+                    role=roles[device_data['role']],
+                    platform=platforms[device_data['platform']],
+                    site=site,
+                    status=status
+                )
+                self.logger.info(f"Created device: {device.name}")
+
+    def _create_interfaces_and_ips(self, site, mgmt_prefix, status):
+        """Create interfaces and IP addresses for devices."""
+        from nautobot.dcim.models import Device, Interface
+        from nautobot.ipam.models import IPAddress
+        import ipaddress
         
-        return created_devices
-    
-    def _create_interfaces_and_ips(self, site, mgmt_prefix):
-        """Create interfaces and IP addresses for devices"""
-        
-        # Interface and IP data for each device
-        interface_data = {
-            'access1': [
-                {'name': 'Management1', 'type': 'virtual', 'mgmt_ip': '172.20.20.11/24'},
-                {'name': 'Ethernet1', 'type': '1000base-t', 'description': 'Link to dist1'},
-                {'name': 'Ethernet2', 'type': '1000base-t', 'description': 'Access port'},
-                {'name': 'Ethernet3', 'type': '1000base-t', 'description': 'Access port'},
-            ],
-            'access2': [
-                {'name': 'Management1', 'type': 'virtual', 'mgmt_ip': '172.20.20.12/24'},
-                {'name': 'Ethernet1', 'type': '1000base-t', 'description': 'Link to dist1'},
-                {'name': 'Ethernet2', 'type': '1000base-t', 'description': 'Access port'},
-                {'name': 'Ethernet3', 'type': '1000base-t', 'description': 'Access port'},
-            ],
-            'dist1': [
-                {'name': 'ethernet-1/1', 'type': '1000base-t', 'description': 'Link to access1'},
-                {'name': 'ethernet-1/2', 'type': '1000base-t', 'description': 'Link to access2'},
-                {'name': 'ethernet-1/3', 'type': '1000base-t', 'description': 'Link to rtr1'},
-                {'name': 'ethernet-1/4', 'type': 'virtual', 'mgmt_ip': '172.20.20.13/24'},
-            ],
-            'rtr1': [
-                {'name': 'ethernet-1/1', 'type': '1000base-t', 'description': 'Link to dist1'},
-                {'name': 'ethernet-1/2', 'type': 'virtual', 'mgmt_ip': '172.20.20.14/24'},
-            ],
+        # IP address mapping
+        ip_mapping = {
+            'access1': '172.20.20.11',
+            'access2': '172.20.20.12',
+            'dist1': '172.20.20.13',
+            'rtr1': '172.20.20.14'
         }
         
-        for device_name, interfaces in interface_data.items():
+        for device_name, ip_addr in ip_mapping.items():
             try:
                 device = Device.objects.get(name=device_name, site=site)
                 
-                for iface_info in interfaces:
-                    # Create interface
-                    interface, created = Interface.objects.get_or_create(
-                        device=device,
-                        name=iface_info['name'],
-                        defaults={
-                            'type': iface_info['type'],
-                            'description': iface_info.get('description', ''),
-                            'enabled': True
-                        }
+                # Create management interface
+                interface, created = Interface.objects.get_or_create(
+                    device=device,
+                    name='eth0',
+                    defaults={
+                        'type': '1000base-t',
+                        'status': status
+                    }
+                )
+                if created:
+                    self.logger.info(f"Created interface eth0 for {device_name}")
+                
+                # Create IP address
+                try:
+                    ip = IPAddress.objects.get(address=ip_addr)
+                    self.logger.info(f"Using existing IP: {ip_addr}")
+                except IPAddress.DoesNotExist:
+                    ip = IPAddress.objects.create(
+                        address=ip_addr,
+                        status=status,
+                        assigned_object=interface,
+                        description=f"Management IP for {device_name}"
                     )
+                    self.logger.info(f"Created IP: {ip_addr} for {device_name}")
                     
-                    if created:
-                        self.log_info(f"Created interface {interface.name} on {device.name}")
-                    
-                    # Create IP address if specified
-                    if 'mgmt_ip' in iface_info:
-                        ip_addr, created = IPAddress.objects.get_or_create(
-                            address=iface_info['mgmt_ip'],
-                            defaults={
-                                'status': 'active',
-                                'description': f'Management IP for {device.name}'
-                            }
-                        )
-                        
-                        if created:
-                            self.log_info(f"Created IP address: {ip_addr.address}")
-                        
-                        # Assign IP to interface
-                        interface.ip_addresses.add(ip_addr)
-                        
             except Device.DoesNotExist:
-                self.log_warning(f"Device {device_name} not found, skipping interfaces")
-            except Exception as e:
-                self.log_warning(f"Error creating interfaces for {device_name}: {str(e)}")
-    
-    def _validate_management_subnet(self, subnet):
-        """Validate management subnet format"""
-        try:
-            ipaddress.IPv4Network(subnet, strict=False)
-            return True
-        except ValueError:
-            return False
+                self.logger.warning(f"Device {device_name} not found, skipping interface/IP creation")
+
+register_jobs(PreflightLabSetup)

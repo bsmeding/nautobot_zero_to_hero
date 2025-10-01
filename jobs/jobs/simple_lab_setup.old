@@ -1,0 +1,53 @@
+"""
+Simple Lab Setup Job
+
+A minimal job to test if the job system is working.
+"""
+
+from nautobot.apps.jobs import Job, StringVar, BooleanVar, register_jobs
+
+
+class SimpleLabSetup(Job):
+    """
+    Simple Lab Setup Job
+    
+    A basic job to test the job system.
+    """
+    
+    class Meta:
+        name = "Simple Lab Setup"
+        description = "A simple job to test the job system"
+        read_only = False
+        has_sensitive_variables = False
+        
+    # Job variables
+    site_name = StringVar(
+        label="Site Name",
+        description="Site name for the lab",
+        default="Main Lab",
+        required=True
+    )
+    
+    create_site = BooleanVar(
+        label="Create Site",
+        description="Create the site",
+        default=True
+    )
+
+    def run(self, site_name, create_site):
+        """
+        Execute the job
+        """
+        self.logger.info(f"Starting simple lab setup with site: {site_name}")
+        
+        if create_site:
+            self.logger.info(f"Would create site: {site_name}")
+        else:
+            self.logger.info(f"Site creation disabled for: {site_name}")
+        
+        self.logger.info("Simple lab setup completed successfully!")
+        return f"Job completed for site: {site_name}"
+
+
+# Register the job
+register_jobs(SimpleLabSetup)

@@ -3,7 +3,7 @@ postgres_data/
 redis_data/
 nautobot_config/
 containerlab/clab-nautobot-lab/*
-
+media/
 # Logs
 *.log
 logs/

@@ -176,6 +176,9 @@ The default configuration includes these popular Nautobot plugins:
    ```
 
 2. **Restart Nautobot** to load the new job:
+
+   > Always after adding/changing jobs on local system, restart the Nautobot container to reload in the GUI!
+
    ```bash
    docker-compose restart nautobot
    ```

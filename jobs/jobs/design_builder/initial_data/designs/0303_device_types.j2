@@ -1,0 +1,74 @@
+---
+device_types:
+  # Arista Switches
+  - "!create_or_update:model": "Arista 7050-X"
+    manufacturer__name: "Arista"
+    u_height: 1
+    is_full_depth: false
+    subdevice_role: ""
+  - "!create_or_update:model": "Arista 7050-X"
+    manufacturer__name: "Arista"
+    u_height: 1
+    is_full_depth: false
+    subdevice_role: ""
+  - "!create_or_update:model": "Arista 7050-X"
+    manufacturer__name: "Arista"
+    u_height: 1
+    is_full_depth: false
+    subdevice_role: ""
+  - "!create_or_update:model": "Arista 7050-X"
+    manufacturer__name: "Arista"
+    u_height: 1
+    is_full_depth: false
+    subdevice_role: ""
+
+  # Nokia Routers
+  - "!create_or_update:model": "Nokia SR Linux"
+    manufacturer__name: "Nokia"
+    u_height: 1
+    is_full_depth: false
+    subdevice_role: ""
+  - "!create_or_update:model": "Nokia SR Linux"
+    manufacturer__name: "Nokia"
+    u_height: 1
+    is_full_depth: false
+    subdevice_role: ""
+  - "!create_or_update:model": "Nokia SR Linux"
+    manufacturer__name: "Nokia"
+    u_height: 2
+    is_full_depth: true
+    subdevice_role: ""
+
+  # Nokia Firewalls
+  - "!create_or_update:model": "Nokia SR Linux"
+    manufacturer__name: "Nokia"
+    u_height: 1
+    is_full_depth: false
+    subdevice_role: ""
+  - "!create_or_update:model": "Nokia SR Linux"
+    manufacturer__name: "Nokia"
+    u_height: 1
+    is_full_depth: false
+    subdevice_role: ""
+
+
+interface_templates:
+  # Arista 7050-X Interface Templates
+  - "!create_or_update:name": "GigabitEthernet1/0/1"
+    "!create_or_update:device_type__model": "Arista 7050-X"
+    type: "1000base-t"
+  - "!create_or_update:name": "GigabitEthernet1/0/2"
+    "!create_or_update:device_type__model": "Arista 7050-X"
+    type: "1000base-t"
+  - "!create_or_update:name": "GigabitEthernet1/0/3"
+    "!create_or_update:device_type__model": "Arista 7050-X"
+    type: "1000base-t"
+  - "!create_or_update:name": "GigabitEthernet1/0/4"
+    "!create_or_update:device_type__model": "Arista 7050-X"
+    type: "1000base-t"
+  - "!create_or_update:name": "GigabitEthernet1/0/5"
+    "!create_or_update:device_type__model": "Arista 7050-X"
+    type: "1000base-t"
+  - "!create_or_update:name": "GigabitEthernet1/0/6"
+    "!create_or_update:device_type__model": "Arista 7050-X"
+    type: "1000base-t"

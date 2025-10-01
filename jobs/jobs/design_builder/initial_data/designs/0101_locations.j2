@@ -1,0 +1,34 @@
+---
+# Location Types - Foundational data for location hierarchy
+location_types:
+  - "!create_or_update:name": "Region"
+    nestable: true
+    description: "Geographic regions"
+  - "!create_or_update:name": "Site"
+    parent__name: "Region"
+    nestable: true
+    description: "Physical sites and data centers"
+  - "!create_or_update:name": "Building"
+    parent__name: "Site" 
+    nestable: true
+    description: "Buildings within sites"
+  - "!create_or_update:name": "Floor"
+    parent__name: "Building"
+    nestable: true
+    description: "Floors within buildings"
+  - "!create_or_update:name": "Room"
+    parent__name: "Floor"
+    nestable: true
+    description: "Rooms within floors"
+
+# Location Instances
+locations:
+  - "!create_or_update:name": "NetDevOps"
+    location_type__name: "Region"
+    status__name: "Active"
+    description: "Test region for Lab of NetDevOps.it"
+  - "!create_or_update:name": "Branche office"
+    location_type__name: "Site"
+    parent__name: "NetDevOps"
+    status__name: "Active"
+    description: "Test data center for demonstration purposes"

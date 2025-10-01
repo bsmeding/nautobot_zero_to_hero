@@ -181,7 +181,16 @@ SECRET_KEY = os.getenv("NAUTOBOT_SECRET_KEY", "$7nd*w#g^pwgs3wu*su6@z=w@($u%f104
 
 # The file path where uploaded media such as image attachments are stored. A trailing slash is not needed.
 #
-# MEDIA_ROOT = os.path.join(NAUTOBOT_ROOT, "media").rstrip("/")
+MEDIA_ROOT = os.path.join(NAUTOBOT_ROOT, "media").rstrip("/")
+
+# URL that handles the media served from MEDIA_ROOT. Make sure to use a trailing slash.
+# Examples: "http://example.com/media/", "http://media.example.com/"
+#
+MEDIA_URL = "/media/"
+
+# File permissions for uploaded files. Set to None to disable chmod (useful for WSL2/Docker)
+#
+FILE_UPLOAD_PERMISSIONS = None
 
 # Set to True to use session cookies instead of persistent cookies.
 # Session cookies will expire when a browser is closed.
