@@ -295,37 +295,42 @@ class PreflightLabSetup(Job):
         """Create dynamic groups for platform-based device grouping."""
         from nautobot.extras.models import DynamicGroup
         from django.contrib.contenttypes.models import ContentType
+        from nautobot.dcim.models import Platform
         
         # Get the device content type
         device_content_type = ContentType.objects.get(app_label='dcim', model='device')
         
-        # Dynamic group configurations with correct filters
+        # Dynamic group configurations with correct platform name array filters
         dynamic_group_configs = [
             {
                 'name': 'Arista Devices',
                 'content_type': device_content_type,
-                'filter': {'platform__name': 'Arista EOS'},
+                'filter': {'platform': ['Arista EOS']},
                 'description': 'All devices running Arista EOS platform'
             },
             {
                 'name': 'Nokia Devices', 
                 'content_type': device_content_type,
-                'filter': {'platform__name': 'Nokia SR Linux'},
+                'filter': {'platform': ['Nokia SR Linux']},
                 'description': 'All devices running Nokia SR Linux platform'
             }
         ]
         
         for group_config in dynamic_group_configs:
             try:
+                self.logger.info(f"Processing dynamic group: {group_config['name']} with filter: {group_config['filter']}")
+                
+                # Validate that all required fields are present
+                if not all(key in group_config for key in ['name', 'content_type', 'filter', 'description']):
+                    self.logger.error(f"Missing required fields in group_config: {group_config}")
+                    continue
+                
                 dynamic_group = DynamicGroup.objects.get(name=group_config['name'])
-                # Update the filter if it exists but has wrong filter
-                if dynamic_group.filter != group_config['filter']:
-                    dynamic_group.filter = group_config['filter']
-                    dynamic_group.description = group_config['description']
-                    dynamic_group.save()
-                    self.logger.info(f"Updated dynamic group: {group_config['name']} with correct filter")
-                else:
-                    self.logger.info(f"Using existing dynamic group: {group_config['name']}")
+                # Always update the filter to ensure it's correct
+                dynamic_group.filter = group_config['filter']
+                dynamic_group.description = group_config['description']
+                dynamic_group.save()
+                self.logger.info(f"Updated dynamic group: {group_config['name']} with filter: {group_config['filter']}")
             except DynamicGroup.DoesNotExist:
                 dynamic_group = DynamicGroup.objects.create(
                     name=group_config['name'],
@@ -333,7 +338,10 @@ class PreflightLabSetup(Job):
                     filter=group_config['filter'],
                     description=group_config['description']
                 )
-                self.logger.info(f"Created dynamic group: {group_config['name']}")
+                self.logger.info(f"Created dynamic group: {group_config['name']} with filter: {group_config['filter']}")
+            except Exception as e:
+                self.logger.error(f"Error processing dynamic group {group_config['name']}: {str(e)}")
+                continue
 
     def _create_management_network(self, site, management_subnet, status):
         """Create management network prefix."""
