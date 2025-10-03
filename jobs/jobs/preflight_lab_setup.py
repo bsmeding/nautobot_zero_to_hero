@@ -140,6 +140,9 @@ class PreflightLabSetup(Job):
             # Create interfaces and IP addresses
             self._create_interfaces_and_ips(site, mgmt_prefix, active_status)
 
+            # Create cable connections
+            self._create_cable_connections(site, active_status)
+
             self.logger.info("Pre-flight lab setup completed successfully!")
 
         except Exception as e:
@@ -651,6 +654,18 @@ class PreflightLabSetup(Job):
                 vm.primary_ip4 = ip
                 vm.save()
                 self.logger.info(f"Set {vm_ip} as primary IP for {vm_data['name']}")
+                
+                # Create additional eth1 interface for data connections
+                vm_interface_eth1, created = VMInterface.objects.get_or_create(
+                    virtual_machine=vm,
+                    name="eth1",
+                    defaults={
+                        'status': status,
+                        'description': f"Data interface for {vm_data['name']}"
+                    }
+                )
+                if created:
+                    self.logger.info(f"Created VM interface eth1 for {vm_data['name']}")
 
     def _create_interfaces_and_ips(self, site, mgmt_prefix, status):
         """Create interfaces and IP addresses for devices."""
@@ -752,5 +767,73 @@ class PreflightLabSetup(Job):
 
         # Note: VM interfaces are not created in Design Builder YAML, so we skip them here to match
         self.logger.info("Skipping VM interface creation to match Design Builder approach")
+
+    def _create_cable_connections(self, site, status):
+        """Create cable connections between devices according to lab topology."""
+        from nautobot.dcim.models import Device, Interface, Cable, CableType
+        from nautobot.virtualization.models import VirtualMachine, VMInterface
+        
+        # Cable type for lab connections
+        cable_type, created = CableType.objects.get_or_create(
+            name="Cat6",
+            defaults={'description': 'Cat6 Ethernet cable'}
+        )
+        if created:
+            self.logger.info("Created cable type: Cat6")
+        
+        # Define cable connections based on lab topology
+        cable_connections = [
+            # Access switches to Distribution switch
+            {'from_device': 'access1', 'from_interface': 'Ethernet1', 'to_device': 'dist1', 'to_interface': 'ethernet-1/1'},
+            {'from_device': 'access2', 'from_interface': 'Ethernet1', 'to_device': 'dist1', 'to_interface': 'ethernet-1/2'},
+            
+            # Distribution switch to Router
+            {'from_device': 'dist1', 'from_interface': 'ethernet-1/3', 'to_device': 'rtr1', 'to_interface': 'ethernet-1/1'},
+            
+            # Router to VMs
+            {'from_device': 'rtr1', 'from_interface': 'ethernet-1/2', 'to_device': 'ztp', 'to_interface': 'eth1'},
+            {'from_device': 'rtr1', 'from_interface': 'ethernet-1/3', 'to_device': 'management', 'to_interface': 'eth1'},
+        ]
+        
+        for connection in cable_connections:
+            try:
+                # Get the source device and interface
+                if connection['from_device'] in ['ztp', 'management']:
+                    # VM interface
+                    from_device = VirtualMachine.objects.get(name=connection['from_device'])
+                    from_interface = VMInterface.objects.get(virtual_machine=from_device, name=connection['from_interface'])
+                else:
+                    # Physical device interface
+                    from_device = Device.objects.get(name=connection['from_device'], location=site)
+                    from_interface = Interface.objects.get(device=from_device, name=connection['from_interface'])
+                
+                # Get the destination device and interface
+                if connection['to_device'] in ['ztp', 'management']:
+                    # VM interface
+                    to_device = VirtualMachine.objects.get(name=connection['to_device'])
+                    to_interface = VMInterface.objects.get(virtual_machine=to_device, name=connection['to_interface'])
+                else:
+                    # Physical device interface
+                    to_device = Device.objects.get(name=connection['to_device'], location=site)
+                    to_interface = Interface.objects.get(device=to_device, name=connection['to_interface'])
+                
+                # Create cable connection
+                cable, created = Cable.objects.get_or_create(
+                    termination_a=from_interface,
+                    termination_b=to_interface,
+                    defaults={
+                        'type': cable_type,
+                        'status': status,
+                        'label': f"{connection['from_device']}-{connection['from_interface']} to {connection['to_device']}-{connection['to_interface']}"
+                    }
+                )
+                
+                if created:
+                    self.logger.info(f"Created cable: {connection['from_device']}-{connection['from_interface']} to {connection['to_device']}-{connection['to_interface']}")
+                else:
+                    self.logger.info(f"Using existing cable: {connection['from_device']}-{connection['from_interface']} to {connection['to_device']}-{connection['to_interface']}")
+                    
+            except Exception as e:
+                self.logger.warning(f"Failed to create cable connection {connection['from_device']}-{connection['from_interface']} to {connection['to_device']}-{connection['to_interface']}: {str(e)}")
 
 register_jobs(PreflightLabSetup)
