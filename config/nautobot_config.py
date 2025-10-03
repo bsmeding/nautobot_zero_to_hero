@@ -412,7 +412,7 @@ FILE_UPLOAD_PERMISSIONS = None
 
 # Send anonymized installation metrics when `nautobot-server post_upgrade` command is run.
 #
-INSTALLATION_METRICS_ENABLED = is_truthy(os.getenv("NAUTOBOT_INSTALLATION_METRICS_ENABLED", "True"))
+INSTALLATION_METRICS_ENABLED = is_truthy(os.getenv("NAUTOBOT_INSTALLATION_METRICS_ENABLED", "False"))
 
 # Storage backend to use for Job input files and Job output files.
 #

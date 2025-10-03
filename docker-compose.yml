@@ -44,7 +44,7 @@ services:
     volumes:
       - ./config/nautobot_config.py:/opt/nautobot/nautobot_config.py
       - ./jobs:/opt/nautobot/jobs
-      - media_data:/opt/nautobot/media
+      - ./media:/opt/nautobot/media
     restart: unless-stopped
     # healthcheck:
     #   test: ["CMD", "curl", "-f", "http://localhost:8080/health/"]
@@ -52,7 +52,7 @@ services:
     #   timeout: 10s
     #   retries: 3
     #   start_period: 120s
-    command: ["bash", "-c", "mkdir -p /opt/nautobot/media/devicetype-images /opt/nautobot/media/device-images /opt/nautobot/media/rack-elevations && nautobot-server runserver 0.0.0.0:8080"]
+    command: ["nautobot-server", "runserver", "0.0.0.0:8080"]
 
   postgres:
     image: postgres:13-alpine
@@ -89,7 +89,7 @@ services:
   celery-beat:
     container_name: ${CELERY_BEAT_CONTAINER_NAME:-nzth-nautobot_celery_beat}
     image: *shared_image
-    command: ["bash", "-c", "mkdir -p /opt/nautobot/media/devicetype-images /opt/nautobot/media/device-images /opt/nautobot/media/rack-elevations && nautobot-server celery beat"]
+    command: ["nautobot-server", "celery", "beat"]
     depends_on:
       nautobot:
         condition: "service_started"
@@ -112,7 +112,7 @@ services:
   celery-worker-1:
     image: *shared_image
     container_name: ${CELERY_WORKER_CONTAINER_NAME:-nzth-nautobot_celery_worker_1}
-    command: ["bash", "-c", "mkdir -p /opt/nautobot/media/devicetype-images /opt/nautobot/media/device-images /opt/nautobot/media/rack-elevations && nautobot-server celery worker --concurrency=4"]
+    command: ["nautobot-server", "celery", "worker", "--concurrency=4"]
     depends_on:
       nautobot:
         condition: "service_started"
@@ -131,7 +131,7 @@ services:
     volumes:
       - ./config/nautobot_config.py:/opt/nautobot/nautobot_config.py
       - ./jobs:/opt/nautobot/jobs
-      - media_data:/opt/nautobot/media
+      - ./media:/opt/nautobot/media
     environment:
       - NAUTOBOT_DB_HOST=${NAUTOBOT_DB_HOST:-nzth-postgres}
       - NAUTOBOT_DB_PORT=5432
@@ -164,4 +164,3 @@ networks:
 volumes:
   postgres_data: {}
   redis_data: {}
-  media_data: {}
