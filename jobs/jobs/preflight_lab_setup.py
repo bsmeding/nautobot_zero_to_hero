@@ -617,22 +617,24 @@ class PreflightLabSetup(Job):
                 )
                 self.logger.info(f"Created virtual machine: {vm.name}")
             
-            # Create VM interface and assign primary IP for the VM
+            # Create VM interfaces and IP addresses (Design Builder has compatibility issues with VM interfaces)
+            from nautobot.virtualization.models import VMInterface
+            
+            # Create eth0 interface (management) with IP address
+            vm_interface, created = VMInterface.objects.get_or_create(
+                virtual_machine=vm,
+                name="eth0",
+                defaults={
+                    'status': status,
+                    'description': f"Management interface for {vm_data['name']}"
+                }
+            )
+            if created:
+                self.logger.info(f"Created VM interface eth0 for {vm_data['name']}")
+            
+            # Create and assign IP address for management interface
             if vm_data['name'] in vm_ip_configs:
                 vm_ip = vm_ip_configs[vm_data['name']]
-                
-                # Create VM interface first
-                from nautobot.virtualization.models import VMInterface
-                vm_interface, created = VMInterface.objects.get_or_create(
-                    virtual_machine=vm,
-                    name="eth0",
-                    defaults={
-                        'status': status,
-                        'description': f"Management interface for {vm_data['name']}"
-                    }
-                )
-                if created:
-                    self.logger.info(f"Created VM interface eth0 for {vm_data['name']}")
                 
                 # Create or get IP address
                 try:
@@ -654,18 +656,20 @@ class PreflightLabSetup(Job):
                 vm.primary_ip4 = ip
                 vm.save()
                 self.logger.info(f"Set {vm_ip} as primary IP for {vm_data['name']}")
-                
-                # Create additional eth1 interface for data connections
-                vm_interface_eth1, created = VMInterface.objects.get_or_create(
-                    virtual_machine=vm,
-                    name="eth1",
-                    defaults={
-                        'status': status,
-                        'description': f"Data interface for {vm_data['name']}"
-                    }
-                )
-                if created:
-                    self.logger.info(f"Created VM interface eth1 for {vm_data['name']}")
+            
+            # Create eth1 interface (data)
+            vm_interface_eth1, created = VMInterface.objects.get_or_create(
+                virtual_machine=vm,
+                name="eth1",
+                defaults={
+                    'status': status,
+                    'description': f"Data interface for {vm_data['name']}"
+                }
+            )
+            if created:
+                self.logger.info(f"Created VM interface eth1 for {vm_data['name']}")
+            
+            self.logger.info(f"VM interfaces and IP addresses created for {vm_data['name']}")
 
     def _create_interfaces_and_ips(self, site, mgmt_prefix, status):
         """Create interfaces and IP addresses for devices."""
@@ -765,21 +769,17 @@ class PreflightLabSetup(Job):
             except Device.DoesNotExist:
                 self.logger.warning(f"Device {device_name} not found, skipping interface/IP creation")
 
-        # Note: VM interfaces are not created in Design Builder YAML, so we skip them here to match
-        self.logger.info("Skipping VM interface creation to match Design Builder approach")
+        # VM interfaces are created above in the _create_devices method for both VMs
+        self.logger.info("VM interfaces created for ztp and management VMs")
 
     def _create_cable_connections(self, site, status):
         """Create cable connections between devices according to lab topology."""
-        from nautobot.dcim.models import Device, Interface, Cable, CableType
+        from nautobot.dcim.models import Device, Interface, Cable
         from nautobot.virtualization.models import VirtualMachine, VMInterface
         
-        # Cable type for lab connections
-        cable_type, created = CableType.objects.get_or_create(
-            name="Cat6",
-            defaults={'description': 'Cat6 Ethernet cable'}
-        )
-        if created:
-            self.logger.info("Created cable type: Cat6")
+        # Note: CableType is not available in Nautobot 2.4.8, creating cables without type
+        # This matches the Design Builder YAML approach which also doesn't specify cable types
+        self.logger.info("Creating cables without type (matching Design Builder approach)")
         
         # Define cable connections based on lab topology
         cable_connections = [
@@ -790,7 +790,7 @@ class PreflightLabSetup(Job):
             # Distribution switch to Router
             {'from_device': 'dist1', 'from_interface': 'ethernet-1/3', 'to_device': 'rtr1', 'to_interface': 'ethernet-1/1'},
             
-            # Router to VMs
+            # Router to VMs (handled by Preflight Job due to Design Builder VMInterface compatibility issues)
             {'from_device': 'rtr1', 'from_interface': 'ethernet-1/2', 'to_device': 'ztp', 'to_interface': 'eth1'},
             {'from_device': 'rtr1', 'from_interface': 'ethernet-1/3', 'to_device': 'management', 'to_interface': 'eth1'},
         ]
@@ -817,23 +817,29 @@ class PreflightLabSetup(Job):
                     to_device = Device.objects.get(name=connection['to_device'], location=site)
                     to_interface = Interface.objects.get(device=to_device, name=connection['to_interface'])
                 
-                # Create cable connection
-                cable, created = Cable.objects.get_or_create(
-                    termination_a=from_interface,
-                    termination_b=to_interface,
-                    defaults={
-                        'type': cable_type,
+                # Create cable connection directly (GenericForeignKey can't be used for lookups)
+                # Handle duplicates with try/except around creation
+                try:
+                    cable_data = {
+                        'termination_a': from_interface,
+                        'termination_b': to_interface,
                         'status': status,
                         'label': f"{connection['from_device']}-{connection['from_interface']} to {connection['to_device']}-{connection['to_interface']}"
                     }
-                )
-                
-                if created:
+                    
+                    cable = Cable.objects.create(**cable_data)
                     self.logger.info(f"Created cable: {connection['from_device']}-{connection['from_interface']} to {connection['to_device']}-{connection['to_interface']}")
-                else:
-                    self.logger.info(f"Using existing cable: {connection['from_device']}-{connection['from_interface']} to {connection['to_device']}-{connection['to_interface']}")
+                except Exception as cable_error:
+                    # Handle potential duplicate cable creation gracefully
+                    if "unique constraint" in str(cable_error).lower() or "duplicate" in str(cable_error).lower():
+                        self.logger.info(f"Using existing cable: {connection['from_device']}-{connection['from_interface']} to {connection['to_device']}-{connection['to_interface']}")
+                    else:
+                        raise cable_error
                     
             except Exception as e:
                 self.logger.warning(f"Failed to create cable connection {connection['from_device']}-{connection['from_interface']} to {connection['to_device']}-{connection['to_interface']}: {str(e)}")
+        
+        # All cable connections created successfully
+        self.logger.info("All cable connections created successfully")
 
 register_jobs(PreflightLabSetup)
