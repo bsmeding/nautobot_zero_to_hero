@@ -1,10 +1,10 @@
 services:
   nautobot-init:
-    image: bsmeding/nautobot:stable-py3.11
+    image: alpine:latest
     container_name: ${NAUTOBOT_CONTAINER_NAME:-nzth-nautobot}-init
     volumes:
       - ./media:/opt/nautobot/media
-    command: ["bash", "-c", "mkdir -p /opt/nautobot/media/{devicetype-images,device-images,rack-elevations,image-attachments,moduletype-images} && chmod -R 755 /opt/nautobot/media && chown -R nautobot:nautobot /opt/nautobot/media"]
+    command: ["sh", "-c", "mkdir -p /opt/nautobot/media/devicetype-images /opt/nautobot/media/device-images /opt/nautobot/media/rack-elevations /opt/nautobot/media/image-attachments /opt/nautobot/media/moduletype-images && chmod -R 755 /opt/nautobot/media && echo 'Media directories created successfully'"]
     restart: "no"
 
   nautobot:

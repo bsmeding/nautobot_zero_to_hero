@@ -1,2 +1,2 @@
-# This file ensures the media directory is tracked by git
-# while ignoring all other contents in this directory
+File to keep media folder in git
+this folder will be mapped to nautobot and keep media files available

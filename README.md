@@ -155,6 +155,55 @@ The default configuration includes these popular Nautobot plugins:
 - **Web Interface**: Nginx reverse proxy
 - **Port**: 8080 (configurable via .env)
 - **Admin User**: admin/admin (configurable via .env)
+- **Media Storage**: Automated media folder setup with proper permissions
+
+## 📁 Media Folder Management
+
+### Automated Media Directory Setup
+
+This repository includes a **rock-solid media folder solution** that automatically creates and configures all required media directories with proper permissions. This eliminates common issues with device images, attachments, and other media files.
+
+#### What It Does
+
+The solution uses an **init container** (`nautobot-init`) that runs before the main Nautobot services to:
+
+- ✅ **Create Required Directories**: All Nautobot media subdirectories
+- ✅ **Set Proper Permissions**: `755` permissions for container access
+- ✅ **Universal Compatibility**: Works for any user on any system
+- ✅ **No Manual Setup**: Zero configuration required after clone
+
+#### Media Directories Created
+
+```
+media/
+├── device-images/          # Device photos and diagrams
+├── devicetype-images/      # Device type images
+├── image-attachments/      # General image attachments
+├── moduletype-images/      # Module type images
+└── rack-elevations/        # Rack elevation diagrams
+```
+
+#### Why This Solution?
+
+**The Problem**: Without proper media directory setup, you'll encounter errors like:
+- `celery-worker-1` cannot access `/opt/nautobot/media/devicetype-images`
+- Permission denied when uploading device images
+- Missing directories cause job failures
+
+**The Solution**: 
+- **Init Container**: Lightweight Alpine container creates directories
+- **Proper Dependencies**: Main services wait for init completion
+- **No Database Dependency**: Alpine avoids PostgreSQL connection issues
+- **Cross-Platform**: Works on Windows, macOS, and Linux
+
+#### How It Works
+
+1. **Init Container Runs First**: `nautobot-init` creates directories and sets permissions
+2. **Service Dependencies**: Main Nautobot services wait for init completion
+3. **Automatic Setup**: No manual intervention required
+4. **Persistent Storage**: Directories persist between container restarts
+
+This solution ensures that your Nautobot deployment works immediately after `git clone` without any additional setup steps.
 
 ## 🛠️ Development Workflow
 
@@ -248,6 +297,7 @@ docker-compose exec nautobot nautobot-server run_job --job-name "Test Job"
 2. **Database connection issues**: Check PostgreSQL container status
 3. **Jobs not appearing**: Restart Nautobot after adding new jobs
 4. **Template errors**: Check Jinja2 syntax and variable references
+5. **Media folder errors**: The automated init container handles this - no manual intervention needed
 
 ### Useful Commands
 
