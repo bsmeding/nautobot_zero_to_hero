@@ -233,18 +233,9 @@ class PreflightLabSetup(Job):
 
     def _create_racks(self, site, status):
         """Create racks for the lab."""
-        from nautobot.dcim.models import Rack, RackGroup
+        from nautobot.dcim.models import Rack
         
-        # Create rack group for the lab
-        rack_group, created = RackGroup.objects.get_or_create(
-            name="Lab Rack Group",
-            location=site,
-            defaults={'description': 'Rack group for lab equipment'}
-        )
-        if created:
-            self.logger.info("Created rack group: Lab Rack Group")
-        
-        # Create racks
+        # Create racks without rack groups (matching Design Builder)
         racks_data = [
             {'name': 'Rack-01', 'u_height': 42},
             {'name': 'Rack-02', 'u_height': 42}
@@ -255,7 +246,6 @@ class PreflightLabSetup(Job):
             rack, created = Rack.objects.get_or_create(
                 name=rack_data['name'],
                 location=site,
-                rack_group=rack_group,
                 defaults={
                     'status': status,
                     'u_height': rack_data['u_height']
@@ -352,14 +342,15 @@ class PreflightLabSetup(Job):
                 self.logger.info(f"Created role: {role_name}")
 
         # Device definitions matching the Containerlab topology and Design Builder YAML
-        # Access devices go to Rack-02, Nokia devices to Rack-01, servers to Rack-01
+        # Access devices go to Rack-02, Nokia devices to Rack-01, virtual machines don't need racks
         devices_data = [
             {'name': 'access1', 'role': 'Access Switch', 'platform': 'Arista EOS', 'device_type': 'Arista EOS', 'rack': 'Rack-02', 'position': 11, 'face': 'front'},
             {'name': 'access2', 'role': 'Access Switch', 'platform': 'Arista EOS', 'device_type': 'Arista EOS', 'rack': 'Rack-02', 'position': 12, 'face': 'front'},
             {'name': 'dist1', 'role': 'Distribution Switch', 'platform': 'Nokia SR Linux', 'device_type': 'Nokia SR Linux', 'rack': 'Rack-01', 'position': 15, 'face': 'front'},
             {'name': 'rtr1', 'role': 'Router', 'platform': 'Nokia SR Linux', 'device_type': 'Nokia SR Linux', 'rack': 'Rack-01', 'position': 20, 'face': 'front'},
-            {'name': 'ztp', 'role': 'Server', 'platform': 'Alpine Linux', 'device_type': 'Alpine Linux', 'rack': 'Rack-01', 'position': 25, 'face': 'front'},
-            {'name': 'mgmt', 'role': 'Management', 'platform': 'Alpine Linux', 'device_type': 'Alpine Linux', 'rack': 'Rack-01', 'position': 30, 'face': 'front'}
+            # ztp and mgmt are virtual machines - no rack assignment needed
+            {'name': 'ztp', 'role': 'Server', 'platform': 'Alpine Linux', 'device_type': 'Alpine Linux', 'rack': None, 'position': None, 'face': 'front'},
+            {'name': 'mgmt', 'role': 'Management', 'platform': 'Alpine Linux', 'device_type': 'Alpine Linux', 'rack': None, 'position': None, 'face': 'front'}
         ]
         
         for device_data in devices_data:
@@ -367,8 +358,8 @@ class PreflightLabSetup(Job):
                 device = Device.objects.get(name=device_data['name'], location=site)
                 self.logger.info(f"Using existing device: {device_data['name']}")
             except Device.DoesNotExist:
-                # Get the rack for this device
-                rack = racks.get(device_data['rack'])
+                # Get the rack for this device (only for physical devices)
+                rack = racks.get(device_data['rack']) if device_data['rack'] else None
                 
                 device = Device.objects.create(
                     name=device_data['name'],
@@ -381,7 +372,10 @@ class PreflightLabSetup(Job):
                     face=device_data['face'],
                     status=status
                 )
-                self.logger.info(f"Created device: {device.name} in {device_data['rack']} at position {device_data['position']}")
+                if device_data['rack']:
+                    self.logger.info(f"Created device: {device.name} in {device_data['rack']} at position {device_data['position']}")
+                else:
+                    self.logger.info(f"Created virtual machine: {device.name} (no rack assignment)")
 
     def _create_interfaces_and_ips(self, site, mgmt_prefix, status):
         """Create interfaces and IP addresses for devices."""
@@ -392,7 +386,7 @@ class PreflightLabSetup(Job):
         # Interface definitions matching Design Builder YAML
         interface_configs = {
             'access1': {
-                'mgmt_ip': '172.20.20.11',
+                'mgmt_ip': '172.20.20.11/24',
                 'interfaces': [
                     {'name': 'Management0', 'description': 'Management interface'},
                     {'name': 'Ethernet1', 'description': 'Data interface - connected to dist1'},
@@ -401,7 +395,7 @@ class PreflightLabSetup(Job):
                 ]
             },
             'access2': {
-                'mgmt_ip': '172.20.20.12',
+                'mgmt_ip': '172.20.20.12/24',
                 'interfaces': [
                     {'name': 'Management0', 'description': 'Management interface'},
                     {'name': 'Ethernet1', 'description': 'Data interface - connected to dist1'},
@@ -410,7 +404,7 @@ class PreflightLabSetup(Job):
                 ]
             },
             'dist1': {
-                'mgmt_ip': '172.20.20.13',
+                'mgmt_ip': '172.20.20.13/24',
                 'interfaces': [
                     {'name': 'mgmt0', 'description': 'Management interface'},
                     {'name': 'ethernet-1/1', 'description': 'Data interface - connected to access1'},
@@ -419,7 +413,7 @@ class PreflightLabSetup(Job):
                 ]
             },
             'rtr1': {
-                'mgmt_ip': '172.20.20.14',
+                'mgmt_ip': '172.20.20.14/24',
                 'interfaces': [
                     {'name': 'mgmt0', 'description': 'Management interface'},
                     {'name': 'ethernet-1/1', 'description': 'Data interface - connected to dist1'},

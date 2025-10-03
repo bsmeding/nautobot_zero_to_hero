@@ -198,13 +198,27 @@ vlans:
     "!create_or_update:name": "Testing"
     status__name: "Active"
 
-# VLAN Groups - Global VLAN group for all sites
+# VLAN Groups (to organize VLANs by location)
 vlan_groups:
-  - "!create_or_update:name": "Standard Enterprise VLANs"
-    description: "Standard VLANs used across all enterprise sites"
+  - "!create_or_update:name": "NetDevOps Lab VLANs"
+    location__name: "netdevops.it_lab"
+    description: "VLAN group for NetDevOps lab environment"
     range: "1-4094"
 
-# No vlan_location_assignments needed - VLANs are global and available everywhere
+# VLAN Location Assignments - Assign VLANs to specific locations
+vlan_location_assignments:
+  - "!create_or_update:vlan__vid": 10
+    "!create_or_update:location__name": "netdevops.it_lab"
+  - "!create_or_update:vlan__vid": 20
+    "!create_or_update:location__name": "netdevops.it_lab"
+  - "!create_or_update:vlan__vid": 30
+    "!create_or_update:location__name": "netdevops.it_lab"
+  - "!create_or_update:vlan__vid": 100
+    "!create_or_update:location__name": "netdevops.it_lab"
+  - "!create_or_update:vlan__vid": 200
+    "!create_or_update:location__name": "netdevops.it_lab"
+  - "!create_or_update:vlan__vid": 300
+    "!create_or_update:location__name": "netdevops.it_lab"
 
 # Prefixes (created before devices) - RE-ENABLED (WERE WORKING FINE)
 # RIRs
@@ -308,16 +322,12 @@ devices:
         "!create_or_update:name": "Ethernet2"
         status__name: "Active"
         type: "1000base-t"
-        mode: "access"
-        description: "Data interface - assigned to Data VLAN"
-        untagged_vlan__vid: 20
+        description: "Data interface - available for connections"
       - "!create_or_update:device__name": "access1"
         "!create_or_update:name": "Ethernet3"
         status__name: "Active"
         type: "1000base-t"
-        mode: "access"
-        description: "Voice interface - assigned to Voice VLAN"
-        untagged_vlan__vid: 30
+        description: "Data interface - available for connections"
     primary_ip4: {"!get:address": "172.20.20.11/24", "deferred": true}
 
   - "!create_or_update:name": "access2"
@@ -348,16 +358,12 @@ devices:
         "!create_or_update:name": "Ethernet2"
         status__name: "Active"
         type: "1000base-t"
-        mode: "access"
-        description: "Data interface - assigned to Data VLAN"
-        untagged_vlan__vid: 20
+        description: "Data interface - available for connections"
       - "!create_or_update:device__name": "access2"
         "!create_or_update:name": "Ethernet3"
         status__name: "Active"
         type: "1000base-t"
-        mode: "access"
-        description: "Voice interface - assigned to Voice VLAN"
-        untagged_vlan__vid: 30
+        description: "Data interface - available for connections"
     primary_ip4: {"!get:address": "172.20.20.12/24", "deferred": true}
 
   - "!create_or_update:name": "dist1"
