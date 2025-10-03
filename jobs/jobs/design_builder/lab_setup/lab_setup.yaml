@@ -177,40 +177,28 @@ tags:
     color: "17a2b8"
     description: "Blog series demo"
 
-# VLANs (created before devices) - COMMENTED OUT FOR ISOLATION TEST
-# vlans:
-#   - "!create_or_update:name": "Management"
-#     location__name: "netdevops.it_lab"
-#     vid: 10
-#     description: "Management VLAN"
-#     status__name: "Active"
-#   - "!create_or_update:name": "Data"
-#     location__name: "netdevops.it_lab"
-#     vid: 20
-#     description: "Data VLAN"
-#     status__name: "Active"
-#   - "!create_or_update:name": "Voice"
-#     location__name: "netdevops.it_lab"
-#     vid: 30
-#     description: "Voice VLAN"
-#     status__name: "Active"
-#   - "!create_or_update:name": "Lab-Network"
-#     location__name: "netdevops.it_lab"
-#     vid: 100
-#     description: "Lab network VLAN"
-#     status__name: "Active"
-#   - "!create_or_update:name": "Automation"
-#     location__name: "netdevops.it_lab"
-#     vid: 200
-#     description: "Network automation VLAN"
-#     status__name: "Active"
-#   - "!create_or_update:name": "Testing"
-#     location__name: "netdevops.it_lab"
-#     vid: 300
-#     description: "Testing and validation VLAN"
-#     status__name: "Active"
+# VLANs (created before devices) - COMMENTED OUT FOR DEBUGGING
+vlans:
+  - "!create_or_update:vid": 10
+    "!create_or_update:name": "Management"
+    status__name: "Active"
+  - "!create_or_update:vid": 20
+    "!create_or_update:name": "Data"
+    status__name: "Active"
+  - "!create_or_update:vid": 30
+    "!create_or_update:name": "Voice"
+    status__name: "Active"
+  - "!create_or_update:vid": 100
+    "!create_or_update:name": "Lab-Network"
+    status__name: "Active"
+  - "!create_or_update:vid": 200
+    "!create_or_update:name": "Automation"
+    status__name: "Active"
+  - "!create_or_update:vid": 300
+    "!create_or_update:name": "Testing"
+    status__name: "Active"
 
-# Prefixes (created before devices) - RE-ENABLED FOR TESTING (FIXED LOCATION TYPES)
+# Prefixes (created before devices) - RE-ENABLED (WERE WORKING FINE)
 # RIRs
 rirs:
   - "!create_or_update:name": "ARIN"
