@@ -67,7 +67,7 @@ services:
     command: ["nautobot-server", "runserver", "0.0.0.0:8080"]
 
   postgres:
-    image: postgres:13-alpine
+    image: postgres:18-alpine
     container_name: ${POSTGRES_CONTAINER_NAME:-nzth-postgres}
     command:
       - "-c"
