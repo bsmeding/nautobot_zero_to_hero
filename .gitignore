@@ -3,7 +3,9 @@ postgres_data/
 redis_data/
 nautobot_config/
 containerlab/clab-nautobot-lab/*
-media/
+# Keep media folder structure but ignore contents
+media/*
+!media/.gitkeep
 # Logs
 *.log
 logs/
