@@ -318,6 +318,7 @@ devices:
         status__name: "Active"
         type: "1000base-t"
         description: "Data interface - available for connections"
+    primary_ip4: {"!get:address": "172.20.20.11/24", "deferred": true}
 
   - "!create_or_update:name": "access2"
     location__name: "netdevops.it_lab"
@@ -353,6 +354,7 @@ devices:
         status__name: "Active"
         type: "1000base-t"
         description: "Data interface - available for connections"
+    primary_ip4: {"!get:address": "172.20.20.12/24", "deferred": true}
 
   - "!create_or_update:name": "dist1"
     location__name: "netdevops.it_lab"
@@ -388,6 +390,7 @@ devices:
         status__name: "Active"
         type: "1000base-t"
         description: "Data interface - connected to rtr1"
+    primary_ip4: {"!get:address": "172.20.20.13/24", "deferred": true}
 
   - "!create_or_update:name": "rtr1"
     location__name: "netdevops.it_lab"
@@ -423,6 +426,7 @@ devices:
         status__name: "Active"
         type: "1000base-t"
         description: "Data interface - connected to mgmt"
+    primary_ip4: {"!get:address": "172.20.20.14/24", "deferred": true}
 
 # devices:
 #   - "!create_or_update:name": "access1"
