@@ -443,6 +443,7 @@ class PreflightLabSetup(Job):
         from nautobot.dcim.models import Device, Platform, DeviceType, Manufacturer
         from nautobot.virtualization.models import VirtualMachine, Cluster, ClusterType
         from nautobot.extras.models import Role
+        from nautobot.ipam.models import IPAddress
         
         # Get or create platforms matching the blog post topology
         platforms = {}
@@ -580,16 +581,25 @@ class PreflightLabSetup(Job):
             name="Lab-Cluster",
             defaults={
                 'cluster_type': cluster_type,
-                'cluster_group': cluster_group,
-                'location': site
+                'cluster_group': cluster_group
             }
         )
+        # Remove location assignment if it's set (clusters cannot be assigned to Site locations)
+        if cluster.location:
+            cluster.location = None
+            cluster.save()
+            self.logger.info(f"Removed location assignment from cluster (clusters cannot be assigned to Site locations)")
         if created:
             self.logger.info("Created cluster: Lab-Cluster")
         else:
             self.logger.info("Using existing cluster: Lab-Cluster")
         
-        # Create virtual machines
+        # Create virtual machines with IP addresses
+        vm_ip_configs = {
+            'ztp': '172.20.20.15/24',
+            'management': '172.20.20.16/24'
+        }
+        
         for vm_data in virtual_machines_data:
             try:
                 vm = VirtualMachine.objects.get(name=vm_data['name'], cluster=cluster)
@@ -603,6 +613,44 @@ class PreflightLabSetup(Job):
                     status=status
                 )
                 self.logger.info(f"Created virtual machine: {vm.name}")
+            
+            # Create VM interface and assign primary IP for the VM
+            if vm_data['name'] in vm_ip_configs:
+                vm_ip = vm_ip_configs[vm_data['name']]
+                
+                # Create VM interface first
+                from nautobot.virtualization.models import VMInterface
+                vm_interface, created = VMInterface.objects.get_or_create(
+                    virtual_machine=vm,
+                    name="eth0",
+                    defaults={
+                        'status': status,
+                        'description': f"Management interface for {vm_data['name']}"
+                    }
+                )
+                if created:
+                    self.logger.info(f"Created VM interface eth0 for {vm_data['name']}")
+                
+                # Create or get IP address
+                try:
+                    ip = IPAddress.objects.get(address=vm_ip)
+                    self.logger.info(f"Using existing IP: {vm_ip}")
+                except IPAddress.DoesNotExist:
+                    ip = IPAddress.objects.create(
+                        address=vm_ip,
+                        status=status,
+                        description=f"Primary IP for {vm_data['name']}"
+                    )
+                    self.logger.info(f"Created IP: {vm_ip} for {vm_data['name']}")
+                
+                # Assign IP to VM interface
+                vm_interface.ip_addresses.add(ip)
+                self.logger.info(f"Assigned IP {vm_ip} to VM interface eth0 for {vm_data['name']}")
+                
+                # Set as primary IP for the VM
+                vm.primary_ip4 = ip
+                vm.save()
+                self.logger.info(f"Set {vm_ip} as primary IP for {vm_data['name']}")
 
     def _create_interfaces_and_ips(self, site, mgmt_prefix, status):
         """Create interfaces and IP addresses for devices."""

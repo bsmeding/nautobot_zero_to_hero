@@ -551,12 +551,23 @@ clusters:
     cluster_type__name: "Containerlab"
     cluster_group__name: "Lab-Cluster-Group"
 
+# IP Addresses for Virtual Machines
+ip_addresses:
+  - "!create_or_update:address": "172.20.20.15/24"
+    status__name: "Active"
+    description: "Primary IP for ztp VM"
+  - "!create_or_update:address": "172.20.20.16/24"
+    status__name: "Active"
+    description: "Primary IP for management VM"
+
 # Virtual Machines
 virtual_machines:
   - "!create_or_update:name": "ztp"
     cluster__name: "Lab-Cluster"
     status__name: "Active"
+    primary_ip4: {"!get:address": "172.20.20.15/24", "deferred": true}
   - "!create_or_update:name": "management"
     cluster__name: "Lab-Cluster"
     status__name: "Active"
+    primary_ip4: {"!get:address": "172.20.20.16/24", "deferred": true}
 
