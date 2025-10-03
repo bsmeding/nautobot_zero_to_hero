@@ -198,27 +198,14 @@ vlans:
     "!create_or_update:name": "Testing"
     status__name: "Active"
 
-# VLAN Groups (to organize VLANs by location)
+# VLAN Groups - Global VLAN group for all sites
 vlan_groups:
-  - "!create_or_update:name": "NetDevOps Lab VLANs"
-    location__name: "netdevops.it_lab"
-    description: "VLAN group for NetDevOps lab environment"
+  - "!create_or_update:name": "Standard Enterprise VLANs"
+    description: "Standard VLANs used across all enterprise sites"
     range: "1-4094"
 
-# VLAN Location Assignments - Assign VLANs to specific locations
-vlan_location_assignments:
-  - "!create_or_update:vlan__vid": 10
-    "!create_or_update:location__name": "netdevops.it_lab"
-  - "!create_or_update:vlan__vid": 20
-    "!create_or_update:location__name": "netdevops.it_lab"
-  - "!create_or_update:vlan__vid": 30
-    "!create_or_update:location__name": "netdevops.it_lab"
-  - "!create_or_update:vlan__vid": 100
-    "!create_or_update:location__name": "netdevops.it_lab"
-  - "!create_or_update:vlan__vid": 200
-    "!create_or_update:location__name": "netdevops.it_lab"
-  - "!create_or_update:vlan__vid": 300
-    "!create_or_update:location__name": "netdevops.it_lab"
+# VLAN Location Assignments - REMOVED FOR GLOBAL VLANS
+# Global VLANs don't need location assignments - they're available everywhere
 
 # Prefixes (created before devices) - RE-ENABLED (WERE WORKING FINE)
 # RIRs
