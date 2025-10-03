@@ -1,0 +1,134 @@
+# Test Design Builder Configuration
+# Minimal version to isolate the issue
+
+---
+# Location Types (basic)
+location_types:
+  - "!create_or_update:name": "Region"
+    description: "Geographic regions"
+    nestable: true
+  - "!create_or_update:name": "Site"
+    description: "Physical sites and data centers"
+    parent__name: "Region"
+    nestable: true
+
+# Locations (basic)
+locations:
+  - "!create_or_update:name": "NetDevOps Lab Region"
+    location_type__name: "Region"
+    status__name: "Active"
+    description: "NetDevOps Lab Region"
+  - "!create_or_update:name": "netdevops.it_lab"
+    location_type__name: "Site"
+    parent__name: "NetDevOps Lab Region"
+    status__name: "Active"
+    description: "Containerlab demo lab environment"
+
+# Manufacturers (basic)
+manufacturers:
+  - "!create_or_update:name": "Arista"
+    description: "Arista Networks"
+  - "!create_or_update:name": "Nokia"
+    description: "Nokia Networks"
+  - "!create_or_update:name": "Generic"
+    description: "Generic"
+
+# Device Types (basic)
+device_types:
+  - "!create_or_update:manufacturer__name": "Arista"
+    "!create_or_update:model": "cEOS"
+    u_height: 1
+  - "!create_or_update:manufacturer__name": "Nokia"
+    "!create_or_update:model": "SR Linux"
+    u_height: 1
+  - "!create_or_update:manufacturer__name": "Generic"
+    "!create_or_update:model": "Alpine Linux"
+    u_height: 1
+
+# Platforms (basic)
+platforms:
+  - "!create_or_update:name": "Arista EOS"
+    napalm_driver: "eos"
+    description: "Arista EOS platform"
+  - "!create_or_update:name": "Nokia SR Linux"
+    napalm_driver: "srl"
+    description: "Nokia SR Linux platform"
+  - "!create_or_update:name": "Alpine Linux"
+    napalm_driver: "linux"
+    description: "Alpine Linux platform"
+
+# Roles (basic)
+roles:
+  - "!create_or_update:name": "Access Switch"
+    color: "28a745"
+    description: "Access layer switches"
+  - "!create_or_update:name": "Server"
+    color: "007bff"
+    description: "Server devices"
+
+# Tags (basic)
+tags:
+  - "!create_or_update:name": "lab"
+    color: "007bff"
+    description: "Lab environment"
+  - "!create_or_update:name": "containerlab"
+    color: "28a745"
+    description: "Containerlab environment"
+
+# Test VLANs (simplified)
+vlans:
+  - "!create_or_update:name": "Management"
+    location__name: "netdevops.it_lab"
+    vid: 10
+    description: "Management VLAN"
+    status__name: "Active"
+
+# Test Prefixes (simplified)
+prefixes:
+  - "!create_or_update:prefix": "172.20.20.0/24"
+    location__name: "netdevops.it_lab"
+    status__name: "Active"
+    description: "Management network"
+
+# Test Rack Groups (simplified)
+rack_groups:
+  - "!create_or_update:name": "Lab Rack Group"
+    location__name: "netdevops.it_lab"
+    description: "Rack group for lab equipment"
+
+# Test Racks (simplified)
+racks:
+  - "!create_or_update:name": "Rack-01"
+    location__name: "netdevops.it_lab"
+    rack_group__name: "Lab Rack Group"
+    status__name: "Active"
+    u_height: 42
+    description: "Primary lab rack"
+
+# Test Devices (simplified)
+devices:
+  - "!create_or_update:name": "access1"
+    location__name: "netdevops.it_lab"
+    role__name: "Access Switch"
+    device_type__manufacturer__name: "Arista"
+    device_type__model: "cEOS"
+    platform__name: "Arista EOS"
+    rack__name: "Rack-01"
+    position: 10
+    face: "front"
+    status__name: "Active"
+    description: "Access Switch 1 - Arista cEOS"
+    primary_ip4: "172.20.20.11/24"
+
+  - "!create_or_update:name": "ztp"
+    location__name: "netdevops.it_lab"
+    role__name: "Server"
+    device_type__manufacturer__name: "Generic"
+    device_type__model: "Alpine Linux"
+    platform__name: "Alpine Linux"
+    rack__name: "Rack-01"
+    position: 20
+    face: "front"
+    status__name: "Active"
+    description: "ZTP Server - Alpine Linux"
+    primary_ip4: "172.20.20.15/24"

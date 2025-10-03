@@ -1,247 +1,568 @@
-# Design Builder Pre-flight Configuration
-# Lab Setup for Containerlab Topology
-# Based on: https://netdevops.it/blog/building-a-reusable-network-automation-lab-with-containerlab/
-
-# This file demonstrates the declarative approach to populating Nautobot
-# using Design Builder instead of custom Jobs
+# Design Builder Configuration matching Preflight Job
+# Using !create_or_update to handle existing objects
 
 ---
-# Site Configuration - Using completely unique name to avoid any conflicts
-sites:
-  - name: "Containerlab Demo Lab 2025"
-    slug: "containerlab-demo-lab-2025"
-    status: "active"
+# Location Types (created first as per preflight job)
+location_types:
+  - "!create_or_update:name": "Region"
+    nestable: false
+    description: "Geographic regions"
+  - "!create_or_update:name": "Site"
+    nestable: true
+    parent__name: "Region"
+    description: "Physical sites and data centers"
+    content_types:
+      - "!get:app_label": "circuits"
+        "!get:model": "circuit"
+      - "!get:app_label": "circuits"
+        "!get:model": "circuittermination"
+      - "!get:app_label": "dcim"
+        "!get:model": "device"
+      - "!get:app_label": "dcim"
+        "!get:model": "powerpanel"
+      - "!get:app_label": "dcim"
+        "!get:model": "rack"
+      - "!get:app_label": "ipam"
+        "!get:model": "prefix"
+      - "!get:app_label": "ipam"
+        "!get:model": "vlan"
+      - "!get:app_label": "ipam"
+        "!get:model": "vlangroup"
+  - "!create_or_update:name": "Building"
+    nestable: true
+    parent__name: "Site"
+    description: "Buildings within sites"
+    content_types:
+      - "!get:app_label": "circuits"
+        "!get:model": "circuittermination"
+      - "!get:app_label": "dcim"
+        "!get:model": "device"
+      - "!get:app_label": "dcim"
+        "!get:model": "powerpanel"
+      - "!get:app_label": "dcim"
+        "!get:model": "rack"
+  - "!create_or_update:name": "Floor"
+    nestable: true
+    parent__name: "Building"
+    description: "Floors within buildings"
+    content_types:
+      - "!get:app_label": "dcim"
+        "!get:model": "device"
+      - "!get:app_label": "dcim"
+        "!get:model": "powerpanel"
+      - "!get:app_label": "dcim"
+        "!get:model": "rack"
+
+  - "!create_or_update:name": "Room"
+    nestable: true
+    parent__name: "Floor"
+    description: "Rooms within floors"
+    content_types:
+      - "!get:app_label": "dcim"
+        "!get:model": "device"
+      - "!get:app_label": "dcim"
+        "!get:model": "powerpanel"
+      - "!get:app_label": "dcim"
+        "!get:model": "rack"
+
+# Locations (created after location types)
+locations:
+  - "!create_or_update:name": "NetDevOps"
+    location_type__name: "Region"
+    status__name: "Active"
+    description: "NetDevOps Lab Region"
+  - "!create_or_update:name": "netdevops.it_lab"
+    location_type__name: "Site"
+    parent__name: "NetDevOps"
+    status__name: "Active"
     description: "Containerlab demo lab environment for network automation testing and blog series"
 
-# Device Roles
-device_roles:
-  - name: "Access Switch"
-    slug: "access-switch"
-    color: "green"
-    description: "Access layer switches"
-  - name: "Distribution Switch"
-    slug: "distribution-switch"
-    color: "orange"
-    description: "Distribution layer switches"
-  - name: "Core Router"
-    slug: "core-router"
-    color: "red"
-    description: "Core layer routers"
+# Manufacturers (created first as per preflight job)
+manufacturers:
+  - "!create_or_update:name": "Arista"
+    description: "Arista Networks"
+  - "!create_or_update:name": "Nokia"
+    description: "Nokia Networks"
+  - "!create_or_update:name": "Generic"
+    description: "Generic"
 
-# Platforms
+# Device Types (created after manufacturers)
+device_types:
+  - "!create_or_update:manufacturer__name": "Arista"
+    "!create_or_update:model": "cEOS"
+    u_height: 1
+    is_full_depth: true
+  - "!create_or_update:manufacturer__name": "Nokia"
+    "!create_or_update:model": "SR Linux"
+    u_height: 1
+    is_full_depth: true
+  - "!create_or_update:manufacturer__name": "Generic"
+    "!create_or_update:model": "Alpine Linux"
+    u_height: 1
+    is_full_depth: true
+
+# Platforms (created after device types)
 platforms:
-  - name: "Arista EOS"
-    slug: "arista-eos"
-    manufacturer: "arista"
+  - "!create_or_update:name": "Arista EOS"
+    napalm_driver: "eos"
+    network_driver: "arista_eos"
     description: "Arista EOS platform"
-  - name: "Nokia SR Linux"
-    slug: "nokia-srl"
-    manufacturer: "nokia"
+  - "!create_or_update:name": "Nokia SR Linux"
+    napalm_driver: "srl"
+    network_driver: "nokia_srl"
     description: "Nokia SR Linux platform"
-  - name: "Nokia SR OS"
-    slug: "nokia-sros"
-    manufacturer: "nokia"
-    description: "Nokia SR OS platform"
+  - "!create_or_update:name": "Alpine Linux"
+    napalm_driver: "linux"
+    network_driver: "linux"
+    description: "Alpine Linux platform"
 
-# Tags for organization
+# Roles (created before devices)
+roles:
+  - "!create_or_update:name": "Access Switch"
+    color: "28a745"
+    description: "Access layer switches"
+    content_types:
+      - "!get:app_label": "dcim"
+        "!get:model": "device"
+  - "!create_or_update:name": "Distribution Switch"
+    color: "fd7e14"
+    description: "Distribution layer switches"
+    content_types:
+      - "!get:app_label": "dcim"
+        "!get:model": "device"
+  - "!create_or_update:name": "Router"
+    color: "dc3545"
+    description: "Core routers"
+    content_types:
+      - "!get:app_label": "dcim"
+        "!get:model": "device"
+  - "!create_or_update:name": "Server"
+    color: "007bff"
+    description: "Server devices"
+    content_types:
+      - "!get:app_label": "dcim"
+        "!get:model": "device"
+  - "!create_or_update:name": "Management"
+    content_types:
+      - "!get:app_label": "dcim"
+        "!get:model": "device"
+    color: "6f42c1"
+    description: "Management devices"
+  - "!create_or_update:name": "ZTP Server"
+    content_types:
+      - "!get:app_label": "virtualization"
+        "!get:model": "virtualmachine"
+    description: "ZTP server devices"
+  - "!create_or_update:name": "Management Server"
+    content_types:
+      - "!get:app_label": "virtualization"
+        "!get:model": "virtualmachine"
+    description: "Management server devices"
+
+# Tags (created before devices)
 tags:
-  - name: "lab"
-    color: "blue"
+  - "!create_or_update:name": "lab"
+    color: "007bff"
     description: "Lab environment"
-  - name: "containerlab"
-    color: "green"
+  - "!create_or_update:name": "containerlab"
+    color: "28a745"
     description: "Containerlab environment"
-  - name: "automation"
-    color: "orange"
+  - "!create_or_update:name": "automation"
+    color: "fd7e14"
     description: "Automation environment"
-  - name: "demo"
-    color: "purple"
+  - "!create_or_update:name": "demo"
+    color: "6f42c1"
     description: "Demo environment"
-  - name: "blog-series"
-    color: "cyan"
+  - "!create_or_update:name": "blog-series"
+    color: "17a2b8"
     description: "Blog series demo"
-  - name: "access"
-    color: "green"
-    description: "Access layer"
-  - name: "distribution"
-    color: "orange"
-    description: "Distribution layer"
-  - name: "core"
-    color: "red"
-    description: "Core layer"
-  - name: "management"
-    color: "purple"
-    description: "Management interfaces"
-  - name: "data"
-    color: "cyan"
-    description: "Data interfaces"
 
-# VLANs
-vlans:
-  - vid: 10
-    name: "Management"
-    description: "Management VLAN"
-    site: "Containerlab Demo Lab 2025"
-    status: "active"
-  - vid: 20
-    name: "Data"
-    description: "Data VLAN"
-    site: "Containerlab Demo Lab 2025"
-    status: "active"
-  - vid: 30
-    name: "Voice"
-    description: "Voice VLAN"
-    site: "Containerlab Demo Lab 2025"
-    status: "active"
+# VLANs (created before devices) - COMMENTED OUT FOR ISOLATION TEST
+# vlans:
+#   - "!create_or_update:name": "Management"
+#     location__name: "netdevops.it_lab"
+#     vid: 10
+#     description: "Management VLAN"
+#     status__name: "Active"
+#   - "!create_or_update:name": "Data"
+#     location__name: "netdevops.it_lab"
+#     vid: 20
+#     description: "Data VLAN"
+#     status__name: "Active"
+#   - "!create_or_update:name": "Voice"
+#     location__name: "netdevops.it_lab"
+#     vid: 30
+#     description: "Voice VLAN"
+#     status__name: "Active"
+#   - "!create_or_update:name": "Lab-Network"
+#     location__name: "netdevops.it_lab"
+#     vid: 100
+#     description: "Lab network VLAN"
+#     status__name: "Active"
+#   - "!create_or_update:name": "Automation"
+#     location__name: "netdevops.it_lab"
+#     vid: 200
+#     description: "Network automation VLAN"
+#     status__name: "Active"
+#   - "!create_or_update:name": "Testing"
+#     location__name: "netdevops.it_lab"
+#     vid: 300
+#     description: "Testing and validation VLAN"
+#     status__name: "Active"
 
-# IP Prefixes
+# Prefixes (created before devices) - RE-ENABLED FOR TESTING (FIXED LOCATION TYPES)
+# RIRs
+rirs:
+  - "!create_or_update:name": "ARIN"
+    description: "American Registry for Internet Numbers"
+    is_private: false
+  - "!create_or_update:name": "RIPE NCC"
+    description: "RIPE Network Coordination Centre"
+    is_private: false
+  - "!create_or_update:name": "APNIC"
+    description: "Asia Pacific Network Information Centre"
+    is_private: false
+  - "!create_or_update:name": "LACNIC"
+    description: "Latin America and Caribbean Network Information Centre"
+    is_private: false
+  - "!create_or_update:name": "AfriNIC"
+    description: "African Network Information Centre"
+    is_private: false
+  - "!create_or_update:name": "RFC 1918"
+    description: "Private address space as defined by RFC 1918"
+    is_private: true
+  - "!create_or_update:name": "RFC 4193"
+    description: "Unique Local Addresses as defined by RFC 4193"
+    is_private: true
+  - "!create_or_update:name": "RFC 6598"
+    description: "Shared Address Space as defined by RFC 6598"
+    is_private: true
+  - "!create_or_update:name": "RFC 3927"
+    description: "Link-Local Addresses as defined by RFC 3927"
+    is_private: true
+
 prefixes:
-  - prefix: "192.168.1.0/24"
-    site: "Containerlab Demo Lab 2025"
-    status: "active"
-    description: "Management network for lab devices"
+  # Basic container prefixes - no namespace references for now
+  - "!create_or_update:prefix": "172.20.0.0/16"
+    type: "container"
+    status__name: "Active"
+    description: "Container for Management network"
+    rir__name: "RFC 1918"
+    date_allocated: "2025-01-01"
+  - "!create_or_update:prefix": "172.16.0.0/12"
+    type: "container"
+    status__name: "Active"
+    description: "Container for Voice network"
+    rir__name: "RFC 1918"
+    date_allocated: "2025-01-01"
+  - "!create_or_update:prefix": "192.168.0.0/16"
+    type: "container"
+    status__name: "Active"
+    description: "Container for Data networks"
+    rir__name: "RFC 1918"
+    date_allocated: "2025-01-01"
 
-# Devices
+
+# Rack Groups (created before racks) - COMMENTED OUT (VALIDATION ERROR)
+# rack_groups:
+#   - "!create_or_update:name": "Lab Rack Group"
+#     description: "Rack group for lab equipment"
+
+# Racks (created before devices) - RE-ENABLED FOR TESTING (FIXED CONTENT_TYPES)
+racks:
+  - "!create_or_update:name": "Rack-01"
+    location__name: "netdevops.it_lab"
+    # "!ref": "rack1"
+    status__name: "Active"
+    u_height: 42
+  - "!create_or_update:name": "Rack-02"
+    location__name: "netdevops.it_lab"
+    # "!ref": "rack2"
+    status__name: "Active"
+    u_height: 42
+
+
+# Devices (created last as per preflight job) - RE-ENABLED FOR TESTING (WITH RACKS)
 devices:
-  # Access Layer - Arista cEOS
-  - name: "access1"
-    site: "Containerlab Demo Lab 2025"
-    device_role: "Access Switch"
-    platform: "Arista EOS"
-    status: "active"
-    description: "Access Switch 1 - Arista cEOS"
-    tags: ["lab", "containerlab", "automation", "demo", "blog-series", "access"]
+  - "!create_or_update:name": "access1"
+    location__name: "netdevops.it_lab"
+    role__name: "Access Switch"
+    device_type__manufacturer__name: "Arista"
+    device_type__model: "cEOS"
+    platform__name: "Arista EOS"
+    rack__name: "Rack-02"
+    position: 11
+    face: "front"
+    status__name: "Active"
     interfaces:
-      - name: "eth0"
+      - "!create_or_update:device__name": "access1"
+        "!create_or_update:name": "Management0"
+        status__name: "Active"
         type: "1000base-t"
-        enabled: true
-        description: "Management interface"
-        tags: ["management"]
         ip_addresses:
-          - address: "192.168.1.11/24"
-            status: "active"
-            description: "Management IP"
-      - name: "Ethernet1"
+          - "!create_or_update:address": "172.20.20.11/24"
+            status__name: "Active"
+            primary: true
+      - "!create_or_update:device__name": "access1"
+        "!create_or_update:name": "Ethernet1"
+        status__name: "Active"
         type: "1000base-t"
-        enabled: true
-        description: "Link to dist1"
-        tags: ["data"]
-      - name: "Ethernet2"
+        description: "Data interface - connected to dist1"
+      - "!create_or_update:device__name": "access1"
+        "!create_or_update:name": "Ethernet2"
+        status__name: "Active"
         type: "1000base-t"
-        enabled: true
-        description: "Access port"
-        tags: ["data"]
-      - name: "Ethernet3"
+        description: "Data interface - available for connections"
+      - "!create_or_update:device__name": "access1"
+        "!create_or_update:name": "Ethernet3"
+        status__name: "Active"
         type: "1000base-t"
-        enabled: true
-        description: "Access port"
-        tags: ["data"]
+        description: "Data interface - available for connections"
 
-  - name: "access2"
-    site: "Containerlab Demo Lab 2025"
-    device_role: "Access Switch"
-    platform: "Arista EOS"
-    status: "active"
-    description: "Access Switch 2 - Arista cEOS"
-    tags: ["lab", "containerlab", "automation", "demo", "blog-series", "access"]
+  - "!create_or_update:name": "access2"
+    location__name: "netdevops.it_lab"
+    role__name: "Access Switch"
+    device_type__manufacturer__name: "Arista"
+    device_type__model: "cEOS"
+    platform__name: "Arista EOS"
+    rack__name: "Rack-02"
+    position: 12
+    face: "front"
+    status__name: "Active"
     interfaces:
-      - name: "eth0"
+      - "!create_or_update:device__name": "access2"
+        "!create_or_update:name": "Management0"
+        status__name: "Active"
         type: "1000base-t"
-        enabled: true
-        description: "Management interface"
-        tags: ["management"]
         ip_addresses:
-          - address: "192.168.1.12/24"
-            status: "active"
-            description: "Management IP"
-      - name: "Ethernet1"
+          - "!create_or_update:address": "172.20.20.12/24"
+            status__name: "Active"
+            primary: true
+      - "!create_or_update:device__name": "access2"
+        "!create_or_update:name": "Ethernet1"
+        status__name: "Active"
         type: "1000base-t"
-        enabled: true
-        description: "Link to dist1"
-        tags: ["data"]
-      - name: "Ethernet2"
+        description: "Data interface - connected to dist1"
+      - "!create_or_update:device__name": "access2"
+        "!create_or_update:name": "Ethernet2"
+        status__name: "Active"
         type: "1000base-t"
-        enabled: true
-        description: "Access port"
-        tags: ["data"]
-      - name: "Ethernet3"
+        description: "Data interface - available for connections"
+      - "!create_or_update:device__name": "access2"
+        "!create_or_update:name": "Ethernet3"
+        status__name: "Active"
         type: "1000base-t"
-        enabled: true
-        description: "Access port"
-        tags: ["data"]
+        description: "Data interface - available for connections"
 
-  # Distribution Layer - Nokia SR Linux
-  - name: "dist1"
-    site: "Containerlab Demo Lab 2025"
-    device_role: "Distribution Switch"
-    platform: "Nokia SR Linux"
-    status: "active"
-    description: "Distribution Switch - Nokia SR Linux"
-    tags: ["lab", "containerlab", "automation", "demo", "blog-series", "distribution"]
+  - "!create_or_update:name": "dist1"
+    location__name: "netdevops.it_lab"
+    role__name: "Distribution Switch"
+    device_type__manufacturer__name: "Nokia"
+    device_type__model: "SR Linux"
+    platform__name: "Nokia SR Linux"
+    rack__name: "Rack-01"
+    position: 15
+    face: "front"
+    status__name: "Active"
     interfaces:
-      - name: "ethernet-1/1"
+      - "!create_or_update:device__name": "dist1"
+        "!create_or_update:name": "mgmt0"
+        status__name: "Active"
         type: "1000base-t"
-        enabled: true
-        description: "Link to access1"
-        tags: ["data"]
-      - name: "ethernet-1/2"
-        type: "1000base-t"
-        enabled: true
-        description: "Link to access2"
-        tags: ["data"]
-      - name: "ethernet-1/3"
-        type: "1000base-t"
-        enabled: true
-        description: "Link to rtr1"
-        tags: ["data"]
-      - name: "eth0"
-        type: "1000base-t"
-        enabled: true
-        description: "Management interface"
-        tags: ["management"]
         ip_addresses:
-          - address: "192.168.1.21/24"
-            status: "active"
-            description: "Management IP"
+          - "!create_or_update:address": "172.20.20.13/24"
+            status__name: "Active"
+            primary: true
+      - "!create_or_update:device__name": "dist1"
+        "!create_or_update:name": "ethernet-1/1"
+        status__name: "Active"
+        type: "1000base-t"
+        description: "Data interface - connected to access1"
+      - "!create_or_update:device__name": "dist1"
+        "!create_or_update:name": "ethernet-1/2"
+        status__name: "Active"
+        type: "1000base-t"
+        description: "Data interface - connected to access2"
+      - "!create_or_update:device__name": "dist1"
+        "!create_or_update:name": "ethernet-1/3"
+        status__name: "Active"
+        type: "1000base-t"
+        description: "Data interface - connected to rtr1"
 
-  # Core Layer - Nokia SR OS
-  - name: "rtr1"
-    site: "Containerlab Demo Lab 2025"
-    device_role: "Core Router"
-    platform: "Nokia SR OS"
-    status: "active"
-    description: "Core Router - Nokia SR OS"
-    tags: ["lab", "containerlab", "automation", "demo", "blog-series", "core"]
+  - "!create_or_update:name": "rtr1"
+    location__name: "netdevops.it_lab"
+    role__name: "Router"
+    device_type__manufacturer__name: "Nokia"
+    device_type__model: "SR Linux"
+    platform__name: "Nokia SR Linux"
+    rack__name: "Rack-01"
+    position: 20
+    face: "front"
+    status__name: "Active"
     interfaces:
-      - name: "ethernet-1/1"
+      - "!create_or_update:device__name": "rtr1"
+        "!create_or_update:name": "mgmt0"
+        status__name: "Active"
         type: "1000base-t"
-        enabled: true
-        description: "Link to dist1"
-        tags: ["data"]
-      - name: "eth0"
-        type: "1000base-t"
-        enabled: true
-        description: "Management interface"
-        tags: ["management"]
         ip_addresses:
-          - address: "192.168.1.1/24"
-            status: "active"
-            description: "Management IP"
+          - "!create_or_update:address": "172.20.20.14/24"
+            status__name: "Active"
+            primary: true
+      - "!create_or_update:device__name": "rtr1"
+        "!create_or_update:name": "ethernet-1/1"
+        status__name: "Active"
+        type: "1000base-t"
+        description: "Data interface - connected to dist1"
+      - "!create_or_update:device__name": "rtr1"
+        "!create_or_update:name": "ethernet-1/2"
+        status__name: "Active"
+        type: "1000base-t"
+        description: "Data interface - connected to ztp"
+      - "!create_or_update:device__name": "rtr1"
+        "!create_or_update:name": "ethernet-1/3"
+        status__name: "Active"
+        type: "1000base-t"
+        description: "Data interface - connected to mgmt"
 
-# Cable Connections (optional - can be added later)
-# cables:
-#   - termination_a_type: "dcim.interface"
-#     termination_a: ["access1", "Ethernet1"]
-#     termination_b_type: "dcim.interface"
-#     termination_b: ["dist1", "ethernet-1/1"]
-#     status: "connected"
-#   - termination_a_type: "dcim.interface"
-#     termination_a: ["access2", "Ethernet1"]
-#     termination_b_type: "dcim.interface"
-#     termination_b: ["dist1", "ethernet-1/2"]
-#     status: "connected"
-#   - termination_a_type: "dcim.interface"
-#     termination_a: ["dist1", "ethernet-1/3"]
-#     termination_b_type: "dcim.interface"
-#     termination_b: ["rtr1", "ethernet-1/1"]
-#     status: "connected"
+# devices:
+#   - "!create_or_update:name": "access1"
+#     location__name: "netdevops.it_lab"
+#     role__name: "Access Switch"
+#     device_type__model: "cEOS"
+#     status__name: "Active"
+#     platform__name: "Arista EOS"
+#     # rack: "!ref": "rack2"
+#     # position: 11
+#     # face: front
+#     status__name: "Active"
+#     description: "Access Switch 1 - Arista cEOS"
+    # primary_ip4: "172.20.20.11/24"
+
+#   - "!create_or_update:name": "access2"
+#     location__name: "netdevops.it_lab"
+#     role__name: "Access Switch"
+#     device_type__manufacturer__name: "Arista"
+#     device_type__model: "cEOS"
+#     platform__name: "Arista EOS"
+#     rack__name: "Rack-02"
+#     position: 12
+#     face: "front"
+#     status__name: "Active"
+#     description: "Access Switch 2 - Arista cEOS"
+#     primary_ip4: "172.20.20.12/24"
+
+#   - "!create_or_update:name": "dist1"
+#     location__name: "netdevops.it_lab"
+#     role__name: "Distribution Switch"
+#     device_type__manufacturer__name: "Nokia"
+#     device_type__model: "SR Linux"
+#     platform__name: "Nokia SR Linux"
+#     rack__name: "Rack-01"
+#     position: 15
+#     face: "front"
+#     status__name: "Active"
+#     description: "Distribution Switch 1 - Nokia SR Linux"
+#     primary_ip4: "172.20.20.13/24"
+
+#   - "!create_or_update:name": "rtr1"
+#     location__name: "netdevops.it_lab"
+#     role__name: "Router"
+#     device_type__manufacturer__name: "Nokia"
+#     device_type__model: "SR Linux"
+#     platform__name: "Nokia SR Linux"
+#     rack__name: "Rack-01"
+#     position: 20
+#     face: "front"
+#     status__name: "Active"
+#     description: "Core Router 1 - Nokia SR Linux"
+#     primary_ip4: "172.20.20.14/24"
+
+#   - "!create_or_update:name": "ztp"
+#     location__name: "netdevops.it_lab"
+#     role__name: "Server"
+#     device_type__manufacturer__name: "Generic"
+#     device_type__model: "Alpine Linux"
+#     platform__name: "Alpine Linux"
+#     rack__name: "Rack-01"
+#     position: 25
+#     face: "front"
+#     status__name: "Active"
+#     description: "ZTP Server - Alpine Linux"
+#     primary_ip4: "172.20.20.15/24"
+
+#   - "!create_or_update:name": "mgmt"
+#     location__name: "netdevops.it_lab"
+#     role__name: "Management"
+#     device_type__manufacturer__name: "Generic"
+#     device_type__model: "Alpine Linux"
+#     platform__name: "Alpine Linux"
+#     rack__name: "Rack-01"
+#     position: 30
+#     face: "front"
+#     status__name: "Active"
+#     description: "Management Server - Alpine Linux"
+#     primary_ip4: "172.20.20.16/24"
+
+# Interfaces (created after devices) - COMMENTED OUT FOR TESTING
+# interfaces:
+#   - "!create_or_update:device__name": "access1"
+#     "!create_or_update:name": "eth0"
+#     type: "1000base-t"
+#     status__name: "Active"
+#     description: "Management interface for access1"
+
+#   - "!create_or_update:device__name": "access2"
+#     "!create_or_update:name": "eth0"
+#     type: "1000base-t"
+#     status__name: "Active"
+#     description: "Management interface for access2"
+
+#   - "!create_or_update:device__name": "dist1"
+#     "!create_or_update:name": "eth0"
+#     type: "1000base-t"
+#     status__name: "Active"
+#     description: "Management interface for dist1"
+
+#   - "!create_or_update:device__name": "rtr1"
+#     "!create_or_update:name": "eth0"
+#     type: "1000base-t"
+#     status__name: "Active"
+#     description: "Management interface for rtr1"
+
+#   - "!create_or_update:device__name": "ztp"
+#     "!create_or_update:name": "eth1"
+#     type: "1000base-t"
+#     status__name: "Active"
+#     description: "Management interface for ztp"
+
+#   - "!create_or_update:device__name": "mgmt"
+#     "!create_or_update:name": "eth1"
+#     type: "1000base-t"
+#     status__name: "Active"
+#     description: "Management interface for mgmt"
+
+# Cluster Types (must be created first)
+cluster_types:
+  - "!create_or_update:name": "Containerlab"
+    description: "Containerlab cluster"
+
+# Cluster Groups
+cluster_groups:
+  - "!create_or_update:name": "Lab-Cluster-Group"
+    description: "Lab cluster group"
+
+# Clusters
+clusters:
+  - "!create_or_update:name": "Lab-Cluster"
+    cluster_type__name: "Containerlab"
+    cluster_group__name: "Lab-Cluster-Group"
+
+# Virtual Machines
+virtual_machines:
+  - "!create_or_update:name": "ztp"
+    cluster__name: "Lab-Cluster"
+    status__name: "Active"
+  - "!create_or_update:name": "management"
+    cluster__name: "Lab-Cluster"
+    status__name: "Active"
+

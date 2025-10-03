@@ -18,6 +18,8 @@ services:
       - NAUTOBOT_LOG_LEVEL=WARNING
       - NAUTOBOT_METRICS_ENABLED=False
       - NAUTOBOT_NAPALM_TIMEOUT=5
+      - NAUTOBOT_NAPALM_USERNAME=admin
+      - NAUTOBOT_NAPALM_PASSWORD=admin
       - NAUTOBOT_MAX_PAGE_SIZE=0
       - NAUTOBOT_DB_HOST=${NAUTOBOT_DB_HOST:-nzth-postgres}
       - NAUTOBOT_DB_PORT=5432
@@ -103,6 +105,7 @@ services:
       - NAUTOBOT_REDIS_PORT=6379      
       - NAUTOBOT_CELERY_BROKER_URL=redis://${NAUTOBOT_REDIS_HOST:-nzth-redis}:6379/0
       - NAUTOBOT_CONFIG=/opt/nautobot/nautobot_config.py
+      
     networks:
       - nautobot
 

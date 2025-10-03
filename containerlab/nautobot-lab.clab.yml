@@ -11,6 +11,8 @@ topology:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
         NAPALM_SECRET: admin
+      startup-config: bootstrap/access1.cfg
+      mgmt-ipv4: 172.20.20.11
 
     access2:
       kind: arista_ceos
@@ -22,28 +24,34 @@ topology:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
         NAPALM_SECRET: admin
+      startup-config: bootstrap/access2.cfg
+      mgmt-ipv4: 172.20.20.12
 
     dist1:
       kind: nokia_srlinux
-      image: ghcr.io/nokia/srlinux
+      image: ghcr.io/nokia/srlinux:latest
       ports:
         - 50005:22
-        - 50006:830
+        - 50006:57400
       env:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
         NAPALM_SECRET: admin
+      startup-config: bootstrap/dist1.cfg
+      mgmt-ipv4: 172.20.20.13
 
     rtr1:
       kind: nokia_srlinux
-      image: ghcr.io/nokia/srlinux
+      image: ghcr.io/nokia/srlinux:latest
       ports:
         - 50007:22
-        - 50008:830
+        - 50008:57400
       env:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
         NAPALM_SECRET: admin
+      startup-config: bootstrap/rtr1.cfg
+      mgmt-ipv4: 172.20.20.14
 
     ztp:
       kind: linux
@@ -61,7 +69,7 @@ topology:
 
     mgmt:
       kind: linux
-      image: bsmeding/ansible_cicd_debian12
+      image: alpine:latest
       ports:
         - 50010:22
       env:
@@ -74,12 +82,12 @@ topology:
         - /usr/sbin/sshd -D
 
   links:
-    - endpoints: [ access1:eth1, dist1:ethernet-1/2 ]
-    - endpoints: [ access2:eth1, dist1:ethernet-1/3 ]
-    - endpoints: [ dist1:ethernet-1/1, rtr1:ethernet-1/1 ]
-    - endpoints: [ dist1:ethernet-1/4, ztp:eth1 ]
-    - endpoints: [ dist1:ethernet-1/5, mgmt:eth1 ]
+    - endpoints: [ access1:eth1, dist1:ethernet-1/1 ]
+    - endpoints: [ access2:eth1, dist1:ethernet-1/2 ]
+    - endpoints: [ dist1:ethernet-1/3, rtr1:ethernet-1/1 ]
+    - endpoints: [ rtr1:ethernet-1/2, ztp:eth1 ]
+    - endpoints: [ rtr1:ethernet-1/3, mgmt:eth1 ]
 
 mgmt:
   network: clab
-  # ipv4-subnet: 192.168.1.0/24
+  ipv4-subnet: 172.20.20.0/24

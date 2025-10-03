@@ -463,17 +463,19 @@ JOBS_ROOT = os.getenv("NAUTOBOT_JOBS_ROOT", os.path.join(NAUTOBOT_ROOT, "jobs").
 
 # Credentials that Nautobot will uses to authenticate to devices when connecting via NAPALM.
 #
-# NAPALM_USERNAME = os.getenv("NAUTOBOT_NAPALM_USERNAME", "")
-# NAPALM_PASSWORD = os.getenv("NAUTOBOT_NAPALM_PASSWORD", "")
+NAPALM_USERNAME = os.getenv("NAUTOBOT_NAPALM_USERNAME", "")
+NAPALM_PASSWORD = os.getenv("NAUTOBOT_NAPALM_PASSWORD", "")
 
 # NAPALM timeout (in seconds). (Default: 30)
 #
-# NAPALM_TIMEOUT = int(os.getenv("NAUTOBOT_NAPALM_TIMEOUT", "30"))
+NAPALM_TIMEOUT = int(os.getenv("NAUTOBOT_NAPALM_TIMEOUT", "30"))
 
 # NAPALM optional arguments (see https://napalm.readthedocs.io/en/latest/support/#optional-arguments). Arguments must
 # be provided as a dictionary.
 #
-# NAPALM_ARGS = {}
+NAPALM_ARGS = {
+    "insecure": True,  # Disable TLS verification for Nokia devices
+}
 
 # Expiration date (YYYY-MM-DD) for an active Nautobot support contract with Network to Code.
 # Displayed in the About page.

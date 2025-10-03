@@ -1,0 +1,12 @@
+enable
+configure
+interface Management1
+   ip address 172.20.20.11/24
+   no shutdown
+exit
+management ssh
+   no shutdown
+exit
+username admin privilege 15 secret admin
+exit
+write memory
