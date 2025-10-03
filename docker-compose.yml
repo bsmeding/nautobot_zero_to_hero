@@ -44,7 +44,7 @@ services:
     volumes:
       - ./config/nautobot_config.py:/opt/nautobot/nautobot_config.py
       - ./jobs:/opt/nautobot/jobs
-      - ./media:/opt/nautobot/media
+      - media_data:/opt/nautobot/media
     restart: unless-stopped
     # healthcheck:
     #   test: ["CMD", "curl", "-f", "http://localhost:8080/health/"]
@@ -131,7 +131,7 @@ services:
     volumes:
       - ./config/nautobot_config.py:/opt/nautobot/nautobot_config.py
       - ./jobs:/opt/nautobot/jobs
-      - ./media:/opt/nautobot/media
+      - media_data:/opt/nautobot/media
     environment:
       - NAUTOBOT_DB_HOST=${NAUTOBOT_DB_HOST:-nzth-postgres}
       - NAUTOBOT_DB_PORT=5432
@@ -164,3 +164,4 @@ networks:
 volumes:
   postgres_data: {}
   redis_data: {}
+  media_data: {}

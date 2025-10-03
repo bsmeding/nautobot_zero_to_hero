@@ -198,16 +198,9 @@ vlans:
     "!create_or_update:name": "Testing"
     status__name: "Active"
 
-# VLAN Groups - Global VLAN group for all sites
-vlan_groups:
-  - "!create_or_update:name": "Standard Enterprise VLANs"
-    description: "Standard VLANs used across all enterprise sites"
-    range: "1-4094"
+# VLAN Groups - NOT USED (keeping VLANs simple and global)
 
-# VLAN Location Assignments - REMOVED FOR GLOBAL VLANS
-# Global VLANs don't need location assignments - they're available everywhere
-
-# Prefixes (created before devices) - RE-ENABLED (WERE WORKING FINE)
+# Prefixes (created before devices)
 # RIRs
 rirs:
   - "!create_or_update:name": "ARIN"

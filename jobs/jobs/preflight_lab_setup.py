@@ -118,6 +118,9 @@ class PreflightLabSetup(Job):
             if create_tags:
                 self._create_tags()
 
+            # Create NAPALM credentials
+            self._create_napalm_credentials()
+
             # Create management network
             mgmt_prefix = self._create_management_network(site, management_subnet, active_status)
             
@@ -163,6 +166,174 @@ class PreflightLabSetup(Job):
             )
             if created:
                 self.logger.info(f"Created tag: {tag.name}")
+
+    def _create_napalm_credentials(self):
+        """Create NAPALM credentials and secrets groups for different platforms."""
+        from nautobot.extras.models import Secret, SecretsGroup, DynamicGroup
+        
+        # NAPALM credentials for different platforms (lab environment)
+        credentials_data = [
+            {
+                'name': 'Arista EOS NAPALM Credentials',
+                'provider': 'environment-variable',
+                'parameters': {
+                    'variable': 'NAPALM_USERNAME',
+                    'variable2': 'NAPALM_PASSWORD'
+                }
+            },
+            {
+                'name': 'Nokia SR Linux NAPALM Credentials', 
+                'provider': 'environment-variable',
+                'parameters': {
+                    'variable': 'NAPALM_USERNAME',
+                    'variable2': 'NAPALM_PASSWORD_NOKIA'
+                }
+            }
+        ]
+        
+        # Create secrets
+        secrets = {}
+        for cred_data in credentials_data:
+            try:
+                secret = Secret.objects.get(name=cred_data['name'])
+                self.logger.info(f"Using existing NAPALM credentials: {cred_data['name']}")
+            except Secret.DoesNotExist:
+                secret = Secret.objects.create(
+                    name=cred_data['name'],
+                    provider=cred_data['provider'],
+                    parameters=cred_data['parameters']
+                )
+                self.logger.info(f"Created NAPALM credentials: {cred_data['name']}")
+            secrets[cred_data['name']] = secret
+                
+        # Create credential files (for lab environment)
+        self._create_credential_files()
+        
+        # Create secrets groups and associate with devices
+        self._create_secrets_groups_and_associations(secrets)
+        
+        # Create dynamic groups for platform-based device grouping
+        self._create_dynamic_groups()
+
+    def _create_credential_files(self):
+        """Set environment variables for NAPALM authentication."""
+        import os
+        
+        # Set environment variables for NAPALM credentials
+        os.environ['NAPALM_USERNAME'] = 'admin'
+        os.environ['NAPALM_PASSWORD'] = 'admin'  # For Arista devices
+        os.environ['NAPALM_PASSWORD_NOKIA'] = 'NokiaSrl1!'  # For Nokia devices
+        
+        self.logger.info("Set NAPALM environment variables")
+
+    def _create_secrets_groups_and_associations(self, secrets):
+        """Create secrets groups and associate them with devices."""
+        from nautobot.extras.models import SecretsGroup
+        from nautobot.dcim.models import Device
+        
+        # Create secrets groups
+        secrets_groups = {}
+        secrets_group_configs = [
+            {
+                'name': 'Arista NAPALM Secrets Group',
+                'description': 'NAPALM credentials for Arista devices',
+                'secrets': ['Arista EOS NAPALM Credentials']
+            },
+            {
+                'name': 'Nokia NAPALM Secrets Group',
+                'description': 'NAPALM credentials for Nokia devices',
+                'secrets': ['Nokia SR Linux NAPALM Credentials']
+            }
+        ]
+        
+        for group_config in secrets_group_configs:
+            try:
+                secrets_group = SecretsGroup.objects.get(name=group_config['name'])
+                self.logger.info(f"Using existing secrets group: {group_config['name']}")
+            except SecretsGroup.DoesNotExist:
+                secrets_group = SecretsGroup.objects.create(
+                    name=group_config['name'],
+                    description=group_config['description']
+                )
+                self.logger.info(f"Created secrets group: {group_config['name']}")
+            
+            # Add secrets to the group
+            for secret_name in group_config['secrets']:
+                if secret_name in secrets:
+                    # Associate secret with the secrets group
+                    secrets_group.secrets.add(secrets[secret_name])
+                    self.logger.info(f"Added secret '{secret_name}' to secrets group '{group_config['name']}'")
+            
+            secrets_groups[group_config['name']] = secrets_group
+        
+        # Associate secrets groups with devices based on platform
+        device_secrets_mapping = {
+            # Arista devices
+            'access1': 'Arista NAPALM Secrets Group',
+            'access2': 'Arista NAPALM Secrets Group',
+            # Nokia devices
+            'dist1': 'Nokia NAPALM Secrets Group',
+            'rtr1': 'Nokia NAPALM Secrets Group'
+        }
+        
+        for device_name, secrets_group_name in device_secrets_mapping.items():
+            try:
+                device = Device.objects.get(name=device_name)
+                if secrets_group_name in secrets_groups:
+                    secrets_group = secrets_groups[secrets_group_name]
+                    # Associate secrets group with device
+                    device.secrets_group = secrets_group
+                    device.save()
+                    self.logger.info(f"Associated secrets group '{secrets_group_name}' with device '{device_name}'")
+                
+            except Device.DoesNotExist:
+                self.logger.warning(f"Device '{device_name}' not found")
+            except Exception as e:
+                self.logger.warning(f"Failed to associate secrets group with device '{device_name}': {str(e)}")
+
+    def _create_dynamic_groups(self):
+        """Create dynamic groups for platform-based device grouping."""
+        from nautobot.extras.models import DynamicGroup
+        from django.contrib.contenttypes.models import ContentType
+        
+        # Get the device content type
+        device_content_type = ContentType.objects.get(app_label='dcim', model='device')
+        
+        # Dynamic group configurations with correct filters
+        dynamic_group_configs = [
+            {
+                'name': 'Arista Devices',
+                'content_type': device_content_type,
+                'filter': {'platform__name': 'Arista EOS'},
+                'description': 'All devices running Arista EOS platform'
+            },
+            {
+                'name': 'Nokia Devices', 
+                'content_type': device_content_type,
+                'filter': {'platform__name': 'Nokia SR Linux'},
+                'description': 'All devices running Nokia SR Linux platform'
+            }
+        ]
+        
+        for group_config in dynamic_group_configs:
+            try:
+                dynamic_group = DynamicGroup.objects.get(name=group_config['name'])
+                # Update the filter if it exists but has wrong filter
+                if dynamic_group.filter != group_config['filter']:
+                    dynamic_group.filter = group_config['filter']
+                    dynamic_group.description = group_config['description']
+                    dynamic_group.save()
+                    self.logger.info(f"Updated dynamic group: {group_config['name']} with correct filter")
+                else:
+                    self.logger.info(f"Using existing dynamic group: {group_config['name']}")
+            except DynamicGroup.DoesNotExist:
+                dynamic_group = DynamicGroup.objects.create(
+                    name=group_config['name'],
+                    content_type=group_config['content_type'],
+                    filter=group_config['filter'],
+                    description=group_config['description']
+                )
+                self.logger.info(f"Created dynamic group: {group_config['name']}")
 
     def _create_management_network(self, site, management_subnet, status):
         """Create management network prefix."""
@@ -262,6 +433,7 @@ class PreflightLabSetup(Job):
     def _create_devices(self, site, mgmt_prefix, status, racks):
         """Create devices for the lab."""
         from nautobot.dcim.models import Device, Platform, DeviceType, Manufacturer
+        from nautobot.virtualization.models import VirtualMachine, Cluster, ClusterType
         from nautobot.extras.models import Role
         
         # Get or create platforms matching the blog post topology
@@ -342,15 +514,18 @@ class PreflightLabSetup(Job):
                 self.logger.info(f"Created role: {role_name}")
 
         # Device definitions matching the Containerlab topology and Design Builder YAML
-        # Access devices go to Rack-02, Nokia devices to Rack-01, virtual machines don't need racks
+        # Physical devices in racks
         devices_data = [
             {'name': 'access1', 'role': 'Access Switch', 'platform': 'Arista EOS', 'device_type': 'Arista EOS', 'rack': 'Rack-02', 'position': 11, 'face': 'front'},
             {'name': 'access2', 'role': 'Access Switch', 'platform': 'Arista EOS', 'device_type': 'Arista EOS', 'rack': 'Rack-02', 'position': 12, 'face': 'front'},
             {'name': 'dist1', 'role': 'Distribution Switch', 'platform': 'Nokia SR Linux', 'device_type': 'Nokia SR Linux', 'rack': 'Rack-01', 'position': 15, 'face': 'front'},
-            {'name': 'rtr1', 'role': 'Router', 'platform': 'Nokia SR Linux', 'device_type': 'Nokia SR Linux', 'rack': 'Rack-01', 'position': 20, 'face': 'front'},
-            # ztp and mgmt are virtual machines - no rack assignment needed
-            {'name': 'ztp', 'role': 'Server', 'platform': 'Alpine Linux', 'device_type': 'Alpine Linux', 'rack': None, 'position': None, 'face': 'front'},
-            {'name': 'mgmt', 'role': 'Management', 'platform': 'Alpine Linux', 'device_type': 'Alpine Linux', 'rack': None, 'position': None, 'face': 'front'}
+            {'name': 'rtr1', 'role': 'Router', 'platform': 'Nokia SR Linux', 'device_type': 'Nokia SR Linux', 'rack': 'Rack-01', 'position': 20, 'face': 'front'}
+        ]
+        
+        # Virtual machines (matching Design Builder YAML)
+        virtual_machines_data = [
+            {'name': 'ztp', 'role': 'Server', 'platform': 'Alpine Linux'},
+            {'name': 'management', 'role': 'Management', 'platform': 'Alpine Linux'}
         ]
         
         for device_data in devices_data:
@@ -372,19 +547,64 @@ class PreflightLabSetup(Job):
                     face=device_data['face'],
                     status=status
                 )
-                if device_data['rack']:
-                    self.logger.info(f"Created device: {device.name} in {device_data['rack']} at position {device_data['position']}")
-                else:
-                    self.logger.info(f"Created virtual machine: {device.name} (no rack assignment)")
+                self.logger.info(f"Created device: {device.name} in {device_data['rack']} at position {device_data['position']}")
+        
+        # Create cluster for virtual machines (matching Design Builder YAML)
+        cluster_type, created = ClusterType.objects.get_or_create(
+            name="Containerlab",
+            defaults={'description': 'Containerlab cluster'}
+        )
+        if created:
+            self.logger.info("Created cluster type: Containerlab")
+        
+        # Create cluster group first
+        from nautobot.virtualization.models import ClusterGroup
+        cluster_group, created = ClusterGroup.objects.get_or_create(
+            name="Lab-Cluster-Group",
+            defaults={'description': 'Lab cluster group'}
+        )
+        if created:
+            self.logger.info("Created cluster group: Lab-Cluster-Group")
+        else:
+            self.logger.info("Using existing cluster group: Lab-Cluster-Group")
+        
+        cluster, created = Cluster.objects.get_or_create(
+            name="Lab-Cluster",
+            defaults={
+                'cluster_type': cluster_type,
+                'cluster_group': cluster_group,
+                'location': site
+            }
+        )
+        if created:
+            self.logger.info("Created cluster: Lab-Cluster")
+        else:
+            self.logger.info("Using existing cluster: Lab-Cluster")
+        
+        # Create virtual machines
+        for vm_data in virtual_machines_data:
+            try:
+                vm = VirtualMachine.objects.get(name=vm_data['name'], cluster=cluster)
+                self.logger.info(f"Using existing virtual machine: {vm_data['name']}")
+            except VirtualMachine.DoesNotExist:
+                vm = VirtualMachine.objects.create(
+                    name=vm_data['name'],
+                    cluster=cluster,
+                    role=roles[vm_data['role']],
+                    platform=platforms[vm_data['platform']],
+                    status=status
+                )
+                self.logger.info(f"Created virtual machine: {vm.name}")
 
     def _create_interfaces_and_ips(self, site, mgmt_prefix, status):
         """Create interfaces and IP addresses for devices."""
         from nautobot.dcim.models import Device, Interface
+        from nautobot.virtualization.models import VirtualMachine, VMInterface
         from nautobot.ipam.models import IPAddress
         import ipaddress
         
-        # Interface definitions matching Design Builder YAML
-        interface_configs = {
+        # Interface definitions for devices
+        device_interface_configs = {
             'access1': {
                 'mgmt_ip': '172.20.20.11/24',
                 'interfaces': [
@@ -423,7 +643,9 @@ class PreflightLabSetup(Job):
             }
         }
         
-        for device_name, config in interface_configs.items():
+        # VM interfaces are not created to match Design Builder YAML approach
+        
+        for device_name, config in device_interface_configs.items():
             try:
                 device = Device.objects.get(name=device_name, location=site)
                 
@@ -471,5 +693,8 @@ class PreflightLabSetup(Job):
                     
             except Device.DoesNotExist:
                 self.logger.warning(f"Device {device_name} not found, skipping interface/IP creation")
+
+        # Note: VM interfaces are not created in Design Builder YAML, so we skip them here to match
+        self.logger.info("Skipping VM interface creation to match Design Builder approach")
 
 register_jobs(PreflightLabSetup)
