@@ -143,6 +143,8 @@ class PreflightLabSetup(Job):
             # Create cable connections
             self._create_cable_connections(site, active_status)
 
+            # Skipping Golden Config setup per user request
+
             self.logger.info("Pre-flight lab setup completed successfully!")
 
         except Exception as e:
@@ -876,5 +878,6 @@ class PreflightLabSetup(Job):
         
         # All cable connections created successfully
         self.logger.info("All cable connections created successfully")
+
 
 register_jobs(PreflightLabSetup)
