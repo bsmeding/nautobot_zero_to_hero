@@ -9,7 +9,7 @@ services:
 
   nautobot:
     container_name: ${NAUTOBOT_CONTAINER_NAME:-nzth-nautobot}
-    image: &shared_image bsmeding/nautobot:stable-py3.11
+    image: &shared_image bsmeding/nautobot:2.4.19-py3.12
     depends_on:
       postgres:
         condition: "service_started"
@@ -18,10 +18,10 @@ services:
       nautobot-init:
         condition: "service_completed_successfully"
     ports:
-      - "${NAUTOBOT_PORT:-8081}:8080"   # Exposes Nautobot on localhost:8081
+      - "${NAUTOBOT_PORT:-8081}:8080"
     networks:
       - nautobot
-      - clab                            # for talking to Containerlab nodes
+      - clab
     environment:
       - NAUTOBOT_DEBUG=True
       - NAUTOBOT_DJANGO_EXTENSIONS_ENABLED=False
@@ -53,6 +53,7 @@ services:
       - NAUTOBOT_SESSION_COOKIE_SECURE=True
       - NAUTOBOT_CSRF_COOKIE_SECURE=True
       - NAUTOBOT_JOBS_ROOT=/opt/nautobot/jobs
+      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python       # Due to incompatibility between protobuf version for cloudvision and napalm-srl
     volumes:
       - ./config/nautobot_config.py:/opt/nautobot/nautobot_config.py
       - ./jobs:/opt/nautobot/jobs
@@ -155,9 +156,57 @@ services:
       - NAUTOBOT_CELERY_BROKER_URL=redis://${NAUTOBOT_REDIS_HOST:-nzth-redis}:6379/0
       - NAUTOBOT_CONFIG=/opt/nautobot/nautobot_config.py
       - NAUTOBOT_JOBS_ROOT=/opt/nautobot/jobs
+      - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
     networks:
       - nautobot
       - clab
+
+# ## MONITORING
+#   prometheus:
+#     image: prom/prometheus:latest
+#     container_name: nzth-prometheus
+#     depends_on:
+#       - snmp_exporter
+#     networks:
+#       - nautobot
+#       - clab
+#     ports:
+#       - "9090:9090"
+#     volumes:
+#       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+#       - ./prometheus/targets:/etc/prometheus/targets
+#       - prometheus_data:/prometheus
+#     restart: unless-stopped
+
+#   snmp_exporter:
+#     image: prom/snmp-exporter:latest
+#     container_name: nzth-snmp-exporter
+#     networks:
+#       - nautobot
+#       - clab
+#     ports:
+#       - "9116:9116"
+#     restart: unless-stopped
+#     # volumes:
+#     #   - ./prometheus/snmp.yml:/etc/snmp_exporter/snmp.yml:ro
+
+#   grafana:
+#     image: grafana/grafana:latest
+#     container_name: nzth-grafana
+#     depends_on:
+#       - prometheus
+#     networks:
+#       - nautobot
+#     ports:
+#       - "3000:3000"
+#     environment:
+#       - GF_SECURITY_ADMIN_USER=admin
+#       - GF_SECURITY_ADMIN_PASSWORD=admin
+#       - GF_USERS_ALLOW_SIGN_UP=false
+#     volumes:
+#       - grafana_data:/var/lib/grafana
+#     restart: unless-stopped
+
 
 networks:
   # Default Compose network for nautobot services
@@ -176,3 +225,5 @@ networks:
 volumes:
   postgres_data: {}
   redis_data: {}
+  prometheus_data: {}
+  grafana_data: {}

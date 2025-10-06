@@ -474,7 +474,7 @@ NAPALM_TIMEOUT = int(os.getenv("NAUTOBOT_NAPALM_TIMEOUT", "30"))
 # be provided as a dictionary.
 #
 NAPALM_ARGS = {
-    "insecure": True,  # Disable TLS verification for Nokia devices
+    "insecure": True,  # Disable TLS verification for self-signed certs
 }
 
 # Expiration date (YYYY-MM-DD) for an active Nautobot support contract with Network to Code.
