@@ -385,6 +385,41 @@ class PreflightLabSetup(Job):
                     description=prefix_data['description']
                 )
                 self.logger.info(f"Created prefix: {prefix_data['prefix']}")
+            
+            # Create location-specific prefixes under each container with .20 third octet
+            self._create_location_prefixes(prefix, site, status)
+
+    def _create_location_prefixes(self, parent_prefix, site, status):
+        """Create location-specific prefixes under each container with .20 third octet."""
+        from nautobot.ipam.models import Prefix
+        import ipaddress
+        
+        # Extract the network from the parent prefix
+        parent_network = ipaddress.ip_network(parent_prefix.prefix)
+        
+        # Create location-specific prefix with .20 third octet
+        if parent_network.version == 4:  # IPv4 only
+            # Get the first two octets from parent prefix
+            parent_parts = str(parent_network.network_address).split('.')
+            
+            if len(parent_parts) >= 2:
+                # Create prefix with .20 third octet and /24 subnet
+                location_prefix = f"{parent_parts[0]}.{parent_parts[1]}.20.0/24"
+                
+                try:
+                    # Check if location prefix already exists
+                    existing_prefix = Prefix.objects.get(prefix=location_prefix, location=site)
+                    self.logger.info(f"Using existing location prefix: {location_prefix} for {site.name}")
+                except Prefix.DoesNotExist:
+                    # Create new location-specific prefix
+                    location_prefix_obj = Prefix.objects.create(
+                        prefix=location_prefix,
+                        parent=parent_prefix,
+                        location=site,
+                        status=status,
+                        description=f"{site.name} network under {parent_prefix.prefix}"
+                    )
+                    self.logger.info(f"Created location prefix: {location_prefix} for {site.name}")
 
     def _create_vlans(self, site, status):
         """Create VLANs for the lab."""
