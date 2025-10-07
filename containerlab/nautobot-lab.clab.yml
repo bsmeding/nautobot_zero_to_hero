@@ -11,6 +11,11 @@ topology:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
         NAPALM_SECRET: admin
+        PSReadLinePredictionSource: None
+        CEOS: 1
+        EOS_PLATFORM: ceoslab
+        container: docker
+        SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
       startup-config: bootstrap/access1.cfg
       mgmt-ipv4: 172.20.20.11
 
@@ -24,12 +29,17 @@ topology:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
         NAPALM_SECRET: admin
+        PSReadLinePredictionSource: None
+        CEOS: 1
+        EOS_PLATFORM: ceoslab
+        container: docker
+        SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
       startup-config: bootstrap/access2.cfg
       mgmt-ipv4: 172.20.20.12
 
     dist1:
       kind: nokia_srlinux
-      image: ghcr.io/nokia/srlinux:latest
+      image: ghcr.io/nokia/srlinux:23.10.1
       ports:
         - 50005:22
         - 50006:57400
@@ -37,12 +47,15 @@ topology:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
         NAPALM_SECRET: admin
+        PSReadLinePredictionSource: None
       startup-config: bootstrap/dist1.cfg
       mgmt-ipv4: 172.20.20.13
+      exec:
+        - /bin/bash -c "mkdir -p /root/.local/share/powershell && echo 'Set-PSReadLineOption -PredictionSource None' > /root/.local/share/powershell/Microsoft.PowerShell_profile.ps1"
 
     rtr1:
       kind: nokia_srlinux
-      image: ghcr.io/nokia/srlinux:latest
+      image: ghcr.io/nokia/srlinux:23.10.1
       ports:
         - 50007:22
         - 50008:57400
@@ -50,8 +63,11 @@ topology:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
         NAPALM_SECRET: admin
+        PSReadLinePredictionSource: None
       startup-config: bootstrap/rtr1.cfg
       mgmt-ipv4: 172.20.20.14
+      exec:
+        - /bin/bash -c "mkdir -p /root/.local/share/powershell && echo 'Set-PSReadLineOption -PredictionSource None' > /root/.local/share/powershell/Microsoft.PowerShell_profile.ps1"
 
     ztp:
       kind: linux

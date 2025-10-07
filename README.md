@@ -211,6 +211,38 @@ This solution ensures that your Nautobot deployment works immediately after `git
 
 ## 🛠️ Development Workflow
 
+### Demo Scripts and Local venv
+
+This repo includes a progressive demo under `scripts/` that goes from simple static scripts to dynamic inventory and a Nautobot Job template.
+
+- Create and activate a local venv:
+
+```bash
+make install
+source .venv/bin/activate
+```
+
+- Run examples (ensure your lab is up and devices reachable):
+
+```bash
+python scripts/1_config_hostname.py
+python scripts/2_config_interface.py
+python scripts/3_config_arista.py
+
+# Dynamic with Nautobot inventory (requires NB_TOKEN; optional NB_URL, defaults to http://localhost:8081)
+export NB_TOKEN=YOUR_API_TOKEN
+python scripts/4_config_arista_template.py
+python scripts/5_dynamic_config_access_ports_on_access1_and_access2.py
+```
+
+- Freeze dependencies for portability:
+
+```bash
+make freeze
+```
+
+The Job template equivalent is provided in `scripts/6_transform_to_nautobot_job.py` for copying into `jobs/` later.
+
 ### Adding Custom Jobs
 
 1. **Create new job file** in `jobs/jobs/`:
