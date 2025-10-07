@@ -1,5 +1,10 @@
 SHELL := /bin/bash
 
+# Prerequisites:
+# - make: sudo apt install -y make (Ubuntu/Debian/WSL)
+# - python3.12-venv: sudo apt install -y python3.12-venv (Ubuntu/Debian/WSL)
+# See scripts/README.md for detailed installation instructions
+
 # Virtualenv location
 VENV ?= .venv
 PYTHON ?= python3
@@ -13,7 +18,10 @@ help:
 	@echo "  make install  - create venv and install demo dependencies"
 	@echo "  make freeze   - write locked dependencies to scripts/requirements.txt"
 	@echo "  make clean    - remove virtualenv"
-	@echo "\nActivate with: source $(VENV)/bin/activate"
+	@echo ""
+	@echo "After running 'make install':"
+	@echo "  - If you have auto-activation (direnv/autoenv): venv activates automatically"
+	@echo "  - Otherwise, manually activate with: source $(VENV)/bin/activate"
 
 venv:
 	$(PYTHON) -m venv $(VENV)
@@ -25,6 +33,11 @@ install: venv
 		pyeapi \
 		requests \
 		jinja2
+	@echo ""
+	@echo "✅ Virtual environment created and dependencies installed!"
+	@echo ""
+	@echo "⚠️  Don't forget to activate it with:"
+	@echo "    source $(VENV)/bin/activate"
 
 freeze:
 	@mkdir -p scripts

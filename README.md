@@ -53,6 +53,7 @@ nautobot_zero_to_hero/
 - Git for version control
 - Basic understanding of networking concepts
 - Familiarity with command-line operations
+- **For local development scripts**: `make` and `python3.12-venv` (see Development Workflow section below)
 
 ### 1. Clone and Setup
 
@@ -215,12 +216,39 @@ This solution ensures that your Nautobot deployment works immediately after `git
 
 This repo includes a progressive demo under `scripts/` that goes from simple static scripts to dynamic inventory and a Nautobot Job template.
 
-- Create and activate a local venv:
+> 📖 **Detailed documentation**: See [`scripts/README.md`](scripts/README.md) for complete setup instructions and script descriptions.
 
+#### Prerequisites for Local Development
+
+Before using the Makefile commands, ensure you have the required packages installed:
+
+```bash
+# On Ubuntu/Debian/WSL
+sudo apt update
+sudo apt install -y make python3.12-venv
+
+# On Fedora/RHEL/CentOS
+sudo dnf install -y make python3.12
+
+# On macOS (Homebrew)
+brew install make python@3.12
+```
+
+#### Create and activate a local venv:
+
+**If you have auto-activation configured** (direnv, autoenv, or custom shell hooks):
+```bash
+make install
+# .venv will be automatically activated when entering the directory
+```
+
+**If you need manual activation:**
 ```bash
 make install
 source .venv/bin/activate
 ```
+
+> **Note**: Some development environments automatically activate `.venv` folders. If yours does, you only need `make install`. Otherwise, manually activate with `source .venv/bin/activate`.
 
 - Run examples (ensure your lab is up and devices reachable):
 
