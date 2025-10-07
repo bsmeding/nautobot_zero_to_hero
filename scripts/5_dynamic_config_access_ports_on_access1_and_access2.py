@@ -47,20 +47,19 @@ def push_loopbacks(host: str, lo0: str, lo1: str) -> None:
         password="admin",
         port=443,
     )
-    cmds = [
-        "configure terminal",
+    # Use config() method for configuration commands (pyeapi handles config mode automatically)
+    config_cmds = [
         "interface Loopback0",
-        f" ip address {lo0}/32",
-        " no shutdown",
-        "exit",
+        f"ip address {lo0}/32",
+        "no shutdown",
         "interface Loopback1",
-        f" ip address {lo1}/32",
-        " no shutdown",
-        "exit",
-        "end",
-        "write memory",
+        f"ip address {lo1}/32",
+        "no shutdown",
     ]
-    node.execute(cmds)
+    node.config(config_cmds)
+    
+    # Save configuration
+    node.enable("write memory")
     print(f"Configured Loopbacks on {host}")
 
 

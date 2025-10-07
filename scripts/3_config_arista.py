@@ -20,19 +20,18 @@ def configure_device(host: str, hostname: str) -> None:
         password="admin",
         port=443,
     )
-    cmds = [
-        "configure terminal",
+    # Use config() method for configuration commands (pyeapi handles config mode automatically)
+    config_cmds = [
         f"hostname {hostname}",
         "interface Management0",
         "no shutdown",
-        "exit",
         "interface Ethernet1",
         "no shutdown",
-        "exit",
-        "end",
-        "write memory",
     ]
-    node.execute(cmds)
+    node.config(config_cmds)
+    
+    # Save configuration
+    node.enable("write memory")
     print(f"Configured {hostname} ({host})")
 
 

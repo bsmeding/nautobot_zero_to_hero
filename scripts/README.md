@@ -118,6 +118,25 @@ source .venv/bin/activate
 pip install -r scripts/requirements.txt
 ```
 
+## Important Notes
+
+### pyeapi Usage
+These scripts use the **pyeapi** library for Arista devices. Important points:
+
+- **Use `node.config()` for configuration commands** - pyeapi automatically handles entering/exiting config mode
+- **Use `node.enable()` for privileged exec commands** - like `write memory`
+- **Don't manually send** `configure terminal`, `end`, or `exit` - pyeapi handles this automatically
+
+Example:
+```python
+# ✅ Correct way
+node.config(["hostname switch1", "interface Ethernet1", "no shutdown"])
+node.enable("write memory")
+
+# ❌ Wrong way (will cause errors)
+node.execute(["configure terminal", "hostname switch1", "end"])
+```
+
 ## Troubleshooting
 
 ### "command not found: make"
@@ -125,6 +144,9 @@ Install the `make` package using the instructions in the Prerequisites section a
 
 ### "No module named 'venv'"
 Install `python3.12-venv` using the instructions in the Prerequisites section above.
+
+### "Invalid input (privileged mode required)" error
+This means you're trying to use `node.execute()` with config mode commands. Use `node.config()` instead (see Important Notes above).
 
 ### "Connection refused" when running scripts
 Ensure your containerlab is running and devices are accessible:

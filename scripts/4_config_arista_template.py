@@ -56,9 +56,14 @@ def push_config(host: str, rendered_cfg: str) -> None:
         password="admin",
         port=443,
     )
-    # Split into commands; template already includes end/write mem, but eAPI needs cmd list
-    cmds = ["configure terminal"] + [line for line in rendered_cfg.splitlines() if line.strip()] 
-    node.execute(cmds)
+    # Use config() method for configuration commands (pyeapi handles config mode automatically)
+    # Filter out commands that shouldn't be in config mode (end, write memory, etc.)
+    config_cmds = [line for line in rendered_cfg.splitlines() if line.strip() 
+                   and not line.strip().lower() in ('end', 'write memory', 'write mem')]
+    if config_cmds:
+        node.config(config_cmds)
+        # Save configuration
+        node.enable("write memory")
     print(f"Pushed rendered config to {host}")
 
 

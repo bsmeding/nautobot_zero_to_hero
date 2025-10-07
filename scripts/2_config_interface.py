@@ -16,16 +16,16 @@ def main() -> None:
         password="admin",
         port=443,
     )
-    cmds = [
-        "configure terminal",
+    # Use config() method for configuration commands (pyeapi handles config mode automatically)
+    config_cmds = [
         "interface Management0",
         "ip address 172.20.20.11/24",
         "no shutdown",
-        "exit",
-        "end",
-        "write memory",
     ]
-    node.execute(cmds)
+    node.config(config_cmds)
+    
+    # Save configuration
+    node.enable("write memory")
     print("Configured Management0 on access1")
 
 

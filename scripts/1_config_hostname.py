@@ -16,16 +16,15 @@ def main() -> None:
         password="admin",
         port=443,
     )
-    cmds = [
-        "configure terminal",
+    # Use config() method for configuration commands (pyeapi handles config mode automatically)
+    config_cmds = [
         "hostname access1",
-        "end",
-        "write memory",
     ]
-    result = node.execute(cmds)
+    node.config(config_cmds)
+    
+    # Save configuration
+    node.enable("write memory")
     print("Completed hostname configuration on access1")
-    if "error" in str(result).lower():
-        print(result)
 
 
 if __name__ == "__main__":
