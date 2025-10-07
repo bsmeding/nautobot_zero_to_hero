@@ -37,13 +37,16 @@ class ConfigureAccessLoopbacks(Job):
             lo0 = hosts[idx].exploded
             lo1 = hosts[idx + 1].exploded if idx + 1 < len(hosts) else hosts[idx].exploded
 
-            node = pyeapi.connect(
+            # Create a connection and get the node
+            connection = pyeapi.connect(
                 transport="https",
                 host=host,
                 username="admin",
                 password="admin",
                 port=443,
             )
+            node = pyeapi.client.Node(connection)
+            
             # Use config() method for configuration commands (pyeapi handles config mode automatically)
             config_cmds = [
                 "interface Loopback0",

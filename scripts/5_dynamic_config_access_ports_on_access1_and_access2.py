@@ -40,13 +40,16 @@ def assign_loopback_ips(subnet: str, device_names: list[str]) -> dict[str, str]:
 
 
 def push_loopbacks(host: str, lo0: str, lo1: str) -> None:
-    node = pyeapi.connect(
+    # Create a connection and get the node
+    connection = pyeapi.connect(
         transport="https",
         host=host,
         username="admin",
         password="admin",
         port=443,
     )
+    node = pyeapi.client.Node(connection)
+    
     # Use config() method for configuration commands (pyeapi handles config mode automatically)
     config_cmds = [
         "interface Loopback0",

@@ -49,13 +49,16 @@ def get_device_interfaces(nb_url: str, token: str, device_id: str):
 
 
 def push_config(host: str, rendered_cfg: str) -> None:
-    node = pyeapi.connect(
+    # Create a connection and get the node
+    connection = pyeapi.connect(
         transport="https",
         host=host,
         username="admin",
         password="admin",
         port=443,
     )
+    node = pyeapi.client.Node(connection)
+    
     # Use config() method for configuration commands (pyeapi handles config mode automatically)
     # Filter out commands that shouldn't be in config mode (end, write memory, etc.)
     config_cmds = [line for line in rendered_cfg.splitlines() if line.strip() 

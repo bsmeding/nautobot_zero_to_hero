@@ -123,6 +123,7 @@ pip install -r scripts/requirements.txt
 ### pyeapi Usage
 These scripts use the **pyeapi** library for Arista devices. Important points:
 
+- **Create a connection first, then wrap it in a Node object**
 - **Use `node.config()` for configuration commands** - pyeapi automatically handles entering/exiting config mode
 - **Use `node.enable()` for privileged exec commands** - like `write memory`
 - **Don't manually send** `configure terminal`, `end`, or `exit` - pyeapi handles this automatically
@@ -130,11 +131,22 @@ These scripts use the **pyeapi** library for Arista devices. Important points:
 Example:
 ```python
 # ✅ Correct way
+import pyeapi
+
+connection = pyeapi.connect(
+    transport="https",
+    host="172.20.20.11",
+    username="admin",
+    password="admin",
+    port=443
+)
+node = pyeapi.client.Node(connection)
 node.config(["hostname switch1", "interface Ethernet1", "no shutdown"])
 node.enable("write memory")
 
 # ❌ Wrong way (will cause errors)
-node.execute(["configure terminal", "hostname switch1", "end"])
+node = pyeapi.connect(...)  # This returns a connection, not a node
+node.config([...])  # This will fail - connection has no config() method
 ```
 
 ## Troubleshooting

@@ -13,13 +13,16 @@ ARISTA_DEVICES = [
 
 
 def configure_device(host: str, hostname: str) -> None:
-    node = pyeapi.connect(
+    # Create a connection and get the node
+    connection = pyeapi.connect(
         transport="https",
         host=host,
         username="admin",
         password="admin",
         port=443,
     )
+    node = pyeapi.client.Node(connection)
+    
     # Use config() method for configuration commands (pyeapi handles config mode automatically)
     config_cmds = [
         f"hostname {hostname}",

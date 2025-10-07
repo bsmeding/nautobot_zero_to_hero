@@ -9,13 +9,16 @@ import pyeapi
 
 
 def main() -> None:
-    node = pyeapi.connect(
+    # Create a connection and get the node
+    connection = pyeapi.connect(
         transport="https",
         host="172.20.20.11",
         username="admin",
         password="admin",
         port=443,
     )
+    node = pyeapi.client.Node(connection)
+    
     # Use config() method for configuration commands (pyeapi handles config mode automatically)
     config_cmds = [
         "interface Management0",
