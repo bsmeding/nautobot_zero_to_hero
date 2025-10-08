@@ -8,7 +8,13 @@
 hostname {{ device.name }}
 !
 {# Domain Configuration #}
-ip domain-name {{ domain_name }}
+{% if platform_specific.management_interface == 'Management0' %}
+{# Arista EOS - modern syntax #}
+dns domain {{ domain_name }}
+{% elif platform_specific.management_interface == 'mgmt0' %}
+{# Nokia SR Linux #}
+/ system name domain-name {{ domain_name }}
+{% endif %}
 !
 {# DNS Configuration #}
 {% if dns_servers %}
@@ -35,7 +41,8 @@ ntp server {{ ntp_server }}
 {% endfor %}
 {% if platform_specific.ntp_source_interface %}
 {% if platform_specific.management_interface == 'Management0' %}
-ntp source {{ platform_specific.ntp_source_interface }}
+{# Arista EOS - modern syntax #}
+ntp local-interface {{ platform_specific.ntp_source_interface }}
 {% endif %}
 {% endif %}
 !

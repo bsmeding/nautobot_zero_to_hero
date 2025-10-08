@@ -265,11 +265,11 @@ docker-compose restart nautobot
 
 **For Arista (access1):**
 ```
-ip domain-name netdevops.lab
+dns domain netdevops.lab
 ntp server 192.168.1.1
 ntp server 192.168.1.2
 ntp server time.google.com
-ntp source Management0
+ntp local-interface Management0
 ip name-server 8.8.8.8
 ip name-server 8.8.4.4
 ip name-server 1.1.1.1

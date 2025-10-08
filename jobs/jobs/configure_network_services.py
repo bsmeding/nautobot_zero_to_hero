@@ -110,7 +110,8 @@ class ConfigureNetworkServices(Job):
             # Domain name
             if 'domain_name' in config_context:
                 if is_arista:
-                    config_commands.insert(0, f"ip domain-name {config_context['domain_name']}")
+                    # Modern Arista EOS uses 'dns domain' instead of 'ip domain-name'
+                    config_commands.insert(0, f"dns domain {config_context['domain_name']}")
                 elif is_nokia:
                     config_commands.insert(0, f"/ system name domain-name {config_context['domain_name']}")
             
@@ -147,11 +148,12 @@ class ConfigureNetworkServices(Job):
             else:  # Nokia
                 commands.append(f"/ system ntp server {ntp_server}")
         
-        # Add source interface for Arista
+        # Add source interface for Arista (modern syntax)
         if is_arista:
             ntp_source = context.get('platform_specific', {}).get('ntp_source_interface')
             if ntp_source:
-                commands.append(f"ntp source {ntp_source}")
+                # Modern Arista EOS uses 'ntp local-interface' instead of 'ntp source'
+                commands.append(f"ntp local-interface {ntp_source}")
         
         return commands
 
