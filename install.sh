@@ -95,35 +95,38 @@ echo \
   $VERSION_CODENAME stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-echo "[INFO] Installing Docker Engine..."
+echo "  Created: /etc/apt/sources.list.d/docker.list"
+
+echo "[INFO] Updating package lists..."
 sudo apt-get update -y
 
 # Check if packages are available
 echo "  Checking package availability..."
-if ! apt-cache policy docker-ce | grep -q "Candidate:"; then
-    echo "[ERROR] Docker packages not found in repository!"
+if ! apt-cache policy docker-ce | grep -q "Candidate:" 2>/dev/null; then
+    echo "[WARNING] Docker packages not found in apt repository!"
     echo "  Repository: $DOCKER_REPO_URL"
     echo "  Codename: $VERSION_CODENAME"
     echo ""
-    echo "Troubleshooting:"
-    echo "  1. Check: cat /etc/apt/sources.list.d/docker.list"
-    echo "  2. Run: sudo apt-get update"
-    echo "  3. Check: apt-cache policy docker-ce"
-    echo ""
-    echo "Your Docker repository file should contain:"
-    echo "  deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] $DOCKER_REPO_URL $VERSION_CODENAME stable"
-    exit 1
+    echo "[INFO] Falling back to Docker's convenience script..."
+    echo "  This will install the latest Docker version"
+    
+    # Use Docker's official convenience script
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh get-docker.sh
+    rm get-docker.sh
+    
+    echo "  ✅ Docker installed via convenience script"
+else
+    echo "  ✅ Docker packages found in repository"
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    
+    echo "  Installed:"
+    echo "    ✅ docker-ce (Docker Engine)"
+    echo "    ✅ docker-ce-cli (Docker CLI)"
+    echo "    ✅ containerd.io (Container runtime)"
+    echo "    ✅ docker-buildx-plugin (Build plugin)"
+    echo "    ✅ docker-compose-plugin (Compose V2 plugin)"
 fi
-
-echo "  ✅ Docker packages found in repository"
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-echo "  Installed:"
-echo "    ✅ docker-ce (Docker Engine)"
-echo "    ✅ docker-ce-cli (Docker CLI)"
-echo "    ✅ containerd.io (Container runtime)"
-echo "    ✅ docker-buildx-plugin (Build plugin)"
-echo "    ✅ docker-compose-plugin (Compose V2 plugin)"
 
 echo "[INFO] Verifying Docker installation..."
 docker --version
