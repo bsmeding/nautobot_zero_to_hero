@@ -49,6 +49,20 @@ fi
 if [ "$OS" = "ubuntu" ]; then
     DOCKER_REPO_URL="https://download.docker.com/linux/ubuntu"
     DOCKER_GPG_URL="https://download.docker.com/linux/ubuntu/gpg"
+    
+    # Handle newer Ubuntu versions that might not have Docker packages yet
+    # If noble (24.04) or newer, fall back to jammy (22.04)
+    case "$VERSION_CODENAME" in
+        noble|oracular)
+            echo "  [WARNING] $VERSION_CODENAME may not have Docker packages yet"
+            echo "  Falling back to Ubuntu 22.04 LTS (jammy) repository"
+            VERSION_CODENAME="jammy"
+            ;;
+        *)
+            echo "  Using native codename: $VERSION_CODENAME"
+            ;;
+    esac
+    
 elif [ "$OS" = "debian" ]; then
     DOCKER_REPO_URL="https://download.docker.com/linux/debian"
     DOCKER_GPG_URL="https://download.docker.com/linux/debian/gpg"
@@ -56,7 +70,11 @@ else
     echo "[WARNING] Unsupported OS: $OS, trying Ubuntu repository..."
     DOCKER_REPO_URL="https://download.docker.com/linux/ubuntu"
     DOCKER_GPG_URL="https://download.docker.com/linux/ubuntu/gpg"
+    VERSION_CODENAME="jammy"  # Use LTS version as fallback
 fi
+
+echo "  Using repository: $DOCKER_REPO_URL"
+echo "  Using codename: $VERSION_CODENAME"
 
 echo "[INFO] Adding Docker's official GPG key..."
 sudo mkdir -p /usr/share/keyrings
