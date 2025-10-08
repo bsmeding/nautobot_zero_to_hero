@@ -107,11 +107,12 @@ class ConfigureNetworkServices(Job):
                 snmp_commands = self._build_snmp_config(config_context, is_arista)
                 config_commands.extend(snmp_commands)
             
-            # Domain name
+            # Domain name (reset to default, then add new)
             if 'domain_name' in config_context:
                 if is_arista:
                     # Modern Arista EOS uses 'dns domain' instead of 'ip domain-name'
                     config_commands.insert(0, f"dns domain {config_context['domain_name']}")
+                    config_commands.insert(0, "default dns domain")  # Reset domain to default first
                 elif is_nokia:
                     config_commands.insert(0, f"/ system name domain-name {config_context['domain_name']}")
             
@@ -142,6 +143,10 @@ class ConfigureNetworkServices(Job):
         commands = []
         ntp_servers = context.get('ntp_servers', [])
         
+        # For Arista, reset to default NTP config first (removes all NTP servers)
+        if is_arista:
+            commands.append("default ntp")  # Reset NTP to default (removes all config)
+        
         for ntp_server in ntp_servers:
             if is_arista:
                 commands.append(f"ntp server {ntp_server}")
@@ -162,6 +167,10 @@ class ConfigureNetworkServices(Job):
         commands = []
         dns_servers = context.get('dns_servers', [])
         
+        # For Arista, reset DNS to default (removes all DNS servers)
+        if is_arista:
+            commands.append("default ip name-server")  # Reset DNS to default
+        
         for dns_server in dns_servers:
             if is_arista:
                 commands.append(f"ip name-server {dns_server}")
@@ -174,6 +183,11 @@ class ConfigureNetworkServices(Job):
         """Build Syslog configuration commands."""
         commands = []
         syslog_hosts = context.get('syslog_hosts', [])
+        
+        # For Arista, reset syslog hosts to default
+        if is_arista:
+            # Reset logging host to default (removes all hosts)
+            commands.append("default logging host")
         
         for syslog in syslog_hosts:
             host = syslog.get('host')
@@ -205,6 +219,9 @@ class ConfigureNetworkServices(Job):
         location = snmp.get('location')
         
         if is_arista:
+            # Reset SNMP to default (removes all SNMP config)
+            if community or location:
+                commands.append("default snmp-server")  # Reset SNMP to default
             if community:
                 commands.append(f"snmp-server community {community} ro")
             if location:

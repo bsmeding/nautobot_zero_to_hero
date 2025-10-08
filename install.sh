@@ -1,6 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Configuration options
+INSTALL_DESKTOP="${INSTALL_DESKTOP:-false}"  # Set to 'true' to install desktop environment
+
+echo "=========================================="
+echo " Nautobot Lab Installation Script"
+echo "=========================================="
+echo ""
+echo "Options:"
+echo "  INSTALL_DESKTOP=${INSTALL_DESKTOP} (set to 'true' to install desktop environment)"
+echo ""
+echo "Usage:"
+echo "  bash install.sh                          # Standard installation"
+echo "  INSTALL_DESKTOP=true bash install.sh     # Install with desktop environment"
+echo ""
+echo "=========================================="
+echo ""
+
 echo "[INFO] Updating system..."
 sudo apt-get update -y
 sudo apt-get upgrade -y
@@ -77,4 +94,72 @@ done
 
 echo "[INFO] /etc/hosts updated successfully!"
 
-echo "[DONE] Installation complete: Docker, Docker Compose, and Containerlab are installed."
+# Optional: Install desktop environment
+if [ "$INSTALL_DESKTOP" = "true" ]; then
+    echo ""
+    echo "[INFO] Installing desktop environment..."
+    echo "  This will install XFCE desktop environment (lightweight)"
+    
+    sudo apt-get install -y \
+        xfce4 \
+        xfce4-terminal \
+        dbus-x11 \
+        xdg-utils \
+        x11-apps \
+        firefox
+    
+    echo "[INFO] Desktop environment installed!"
+    echo ""
+    echo "[INFO] Configuring ssh:// protocol handler..."
+    
+    # Create desktop file for ssh:// protocol handler
+    mkdir -p ~/.local/share/applications
+    
+    cat > ~/.local/share/applications/ssh-handler.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=SSH Protocol Handler
+Exec=xfce4-terminal -e "bash -c 'ssh %u; exec bash'"
+Terminal=false
+MimeType=x-scheme-handler/ssh
+NoDisplay=true
+EOF
+    
+    # Update desktop database
+    update-desktop-database ~/.local/share/applications/
+    
+    # Set as default handler for ssh:// links
+    xdg-mime default ssh-handler.desktop x-scheme-handler/ssh
+    
+    echo "[INFO] ssh:// protocol handler configured!"
+    echo "  You can now click ssh://admin@access1 links to open SSH in terminal"
+    echo ""
+    echo "[INFO] To start the desktop environment, run:"
+    echo "  export DISPLAY=:0"
+    echo "  startxfce4"
+    echo ""
+    echo "Or use Windows Terminal with WSLg (automatic GUI support)"
+    echo ""
+else
+    echo ""
+    echo "[INFO] Desktop environment not installed (INSTALL_DESKTOP=false)"
+    echo "  To install later, run: INSTALL_DESKTOP=true bash install.sh"
+    echo ""
+fi
+
+echo "[DONE] Installation complete!"
+echo ""
+echo "Summary:"
+echo "  ✅ Docker and Docker Compose installed"
+echo "  ✅ Containerlab installed"
+echo "  ✅ /etc/hosts updated with lab devices"
+if [ "$INSTALL_DESKTOP" = "true" ]; then
+    echo "  ✅ Desktop environment (XFCE) installed"
+    echo "  ✅ ssh:// protocol handler configured"
+fi
+echo ""
+echo "Next steps:"
+echo "  1. Log out and back in (or run: newgrp docker)"
+echo "  2. Deploy containerlab: cd containerlab && sudo containerlab deploy -t nautobot-lab.clab.yml"
+echo "  3. Start Nautobot: docker-compose up -d"
+echo ""

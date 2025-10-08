@@ -24,9 +24,11 @@ This repository provides a complete Nautobot environment with:
 nautobot_zero_to_hero/
 ├── docker-compose.yml          # Main Docker Compose configuration
 ├── .env                        # Environment variables (create this file)
-├── install.sh                 # Automated installation script (Docker, Containerlab, /etc/hosts)
+├── install.sh                 # Automated installation (Docker, Containerlab, /etc/hosts, optional GUI)
 ├── update_hosts.sh            # Update /etc/hosts with lab device hostnames
+├── configure_ssh_handler.sh   # Configure ssh:// protocol handler for clickable links
 ├── get_config.sh              # Helper script to copy files from container
+├── Makefile                   # Build automation for Python virtual environment
 ├── README.md                  # This comprehensive guide
 ├── nautobot_advanced_settings.md  # Advanced configuration options
 ├── .gitignore                 # Git ignore rules
@@ -50,6 +52,8 @@ nautobot_zero_to_hero/
 
 ## 🚀 Quick Start
 
+> 📖 **Detailed Installation Guide**: See [`INSTALLATION.md`](INSTALLATION.md) for comprehensive installation options and troubleshooting.
+
 ### Prerequisites
 
 - Docker and Docker Compose installed
@@ -57,6 +61,7 @@ nautobot_zero_to_hero/
 - Basic understanding of networking concepts
 - Familiarity with command-line operations
 - **For local development scripts**: `make` and `python3.12-venv` (see Development Workflow section below)
+- **Optional**: Desktop environment for GUI and ssh:// link support
 
 ### 1. Clone and Setup
 
@@ -64,7 +69,45 @@ nautobot_zero_to_hero/
 # Clone the repository
 git clone [https://github.com/bsmeding/nautobot_zero_to_hero.git](https://github.com/bsmeding/nautobot_zero_to_hero.git)
 cd nautobot_zero_to_hero
+```
 
+#### Option A: Automated Installation (Recommended)
+
+Use the automated installation script to install all prerequisites:
+
+```bash
+# Standard installation (Docker, Containerlab, /etc/hosts)
+bash install.sh
+
+# OR: Install with desktop environment and ssh:// link support
+INSTALL_DESKTOP=true bash install.sh
+```
+
+**What it installs:**
+- ✅ Docker and Docker Compose
+- ✅ Containerlab
+- ✅ Updates `/etc/hosts` with lab device hostnames
+- ✅ **Optional**: XFCE desktop environment (lightweight)
+- ✅ **Optional**: ssh:// protocol handler (click ssh links to open terminal)
+
+**Desktop Environment Benefits:**
+- Click `ssh://admin@access1` links to auto-open SSH connection
+- GUI browser for accessing Nautobot UI
+- Better WSL integration with WSLg
+- Includes: XFCE Desktop, Firefox browser, Terminal emulator
+
+**When to install desktop:**
+- ✅ If using WSL and want GUI support
+- ✅ If you want clickable ssh:// links  
+- ✅ If you prefer graphical tools
+- ❌ Skip if using headless server
+- ❌ Skip if you only use command-line tools
+
+#### Option B: Manual Setup
+
+If you prefer manual installation, create the environment file:
+
+```bash
 # Create environment file with default values
 cat > .env << EOF
 NAUTOBOT_PORT=8080
@@ -149,6 +192,43 @@ ssh admin@access1
 ssh admin@dist1.lab
 ping rtr1
 ```
+
+### 6. Configure SSH Protocol Handler (Optional)
+
+Enable clickable `ssh://` links that automatically open SSH connections in your terminal:
+
+**Option 1: Included with desktop installation**
+```bash
+# Already configured if you ran: INSTALL_DESKTOP=true bash install.sh
+```
+
+**Option 2: Standalone configuration**
+```bash
+# Configure ssh:// handler without full desktop install
+bash configure_ssh_handler.sh
+```
+
+**What it does:**
+- Detects your terminal emulator (xfce4-terminal, gnome-terminal, konsole)
+- Creates protocol handler for `ssh://` URLs
+- Registers handler with your desktop environment
+
+**Usage examples:**
+```bash
+# Click these links in browser or documentation
+ssh://admin@access1
+ssh://admin@access1.lab
+ssh://admin@172.20.20.11
+
+# Or from command line
+xdg-open ssh://admin@dist1
+```
+
+**Supported terminals:**
+- XFCE Terminal (xfce4-terminal)
+- GNOME Terminal (gnome-terminal)
+- KDE Konsole (konsole)
+- Generic (x-terminal-emulator)
 
 ## 📚 Blog Series Integration
 
