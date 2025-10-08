@@ -33,17 +33,40 @@ sudo apt-get install -y \
     lsb-release \
     git
 
-echo "[INFO] Detecting OS distribution..."
-# Detect if running Ubuntu or Debian
-if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    OS=$ID
-    VERSION_CODENAME=$VERSION_CODENAME
-    echo "  Detected: $OS $VERSION_CODENAME"
+echo "[INFO] Checking if Docker is already installed..."
+if command -v docker &> /dev/null; then
+    DOCKER_VERSION=$(docker --version)
+    echo "  ✅ Docker already installed: $DOCKER_VERSION"
+    
+    # Check if docker compose is available
+    if docker compose version &> /dev/null; then
+        COMPOSE_VERSION=$(docker compose version)
+        echo "  ✅ Docker Compose already installed: $COMPOSE_VERSION"
+        SKIP_DOCKER_INSTALL=true
+    else
+        echo "  ⚠️  Docker installed but Docker Compose plugin missing"
+        SKIP_DOCKER_INSTALL=false
+    fi
 else
-    echo "[ERROR] Cannot detect OS version"
-    exit 1
+    echo "  Docker not found - will install"
+    SKIP_DOCKER_INSTALL=false
 fi
+
+if [ "$SKIP_DOCKER_INSTALL" = "true" ]; then
+    echo "[INFO] Skipping Docker installation (already installed)"
+    echo ""
+else
+    echo "[INFO] Detecting OS distribution..."
+    # Detect if running Ubuntu or Debian
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        OS=$ID
+        VERSION_CODENAME=$VERSION_CODENAME
+        echo "  Detected: $OS $VERSION_CODENAME"
+    else
+        echo "[ERROR] Cannot detect OS version"
+        exit 1
+    fi
 
 # Set Docker repo based on OS
 if [ "$OS" = "ubuntu" ]; then
@@ -128,15 +151,24 @@ else
     echo "    ✅ docker-compose-plugin (Compose V2 plugin)"
 fi
 
-echo "[INFO] Verifying Docker installation..."
-docker --version
-docker compose version
+    echo "[INFO] Verifying Docker installation..."
+    docker --version
+    docker compose version
+fi  # End of SKIP_DOCKER_INSTALL check
 
-echo "[INFO] Installing Containerlab..."
-bash -c "$(curl -sL https://get.containerlab.dev)"
-
-echo "[INFO] Verifying Containerlab installation..."
-containerlab version
+echo "[INFO] Checking if Containerlab is already installed..."
+if command -v containerlab &> /dev/null; then
+    CLAB_VERSION=$(containerlab version | head -1)
+    echo "  ✅ Containerlab already installed: $CLAB_VERSION"
+    echo "[INFO] Skipping Containerlab installation"
+else
+    echo "  Containerlab not found - will install"
+    echo "[INFO] Installing Containerlab..."
+    bash -c "$(curl -sL https://get.containerlab.dev)"
+    
+    echo "[INFO] Verifying Containerlab installation..."
+    containerlab version
+fi
 
 echo "[INFO] Adding current user to docker group..."
 sudo usermod -aG docker $USER
