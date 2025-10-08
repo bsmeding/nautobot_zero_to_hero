@@ -245,7 +245,7 @@ This job demonstrates practical use of config contexts:
 ### 1. Restart Nautobot
 ```bash
 cd /mnt/c/Users/BartSmeding/NetDevOps/Workspace/NAUTOBOT_JOBS/nautobot_zero_to_hero
-docker-compose restart nautobot
+docker compose restart nautobot
 ```
 
 ### 2. Run the Job

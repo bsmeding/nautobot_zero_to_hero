@@ -15,10 +15,10 @@ mkdir -p "$JOBS_DIR"
 # Check if config file exists locally
 if [ ! -f "$CONFIG_FILE" ]; then
     echo "nautobot_config.py not found locally."
-    echo "Creating a minimal docker-compose file to get config..."
+    echo "Creating a minimal docker compose file to get config..."
     
-    # Create a minimal docker-compose file for getting config
-    cat > docker-compose.temp.yml << 'EOF'
+    # Create a minimal docker compose file for getting config
+    cat > docker compose.temp.yml << 'EOF'
 services:
   nautobot:
     container_name: nautobot_temp
@@ -61,7 +61,7 @@ services:
 EOF
     
     echo "Starting temporary containers..."
-    docker-compose -f docker-compose.temp.yml up -d
+    docker compose -f docker compose.temp.yml up -d
     
     echo "Waiting for containers to be ready..."
     sleep 10
@@ -75,8 +75,8 @@ EOF
             echo "Successfully copied nautobot_config.py to $CONFIG_FILE"
         else
             echo "Error: Failed to copy nautobot_config.py from container"
-            docker-compose -f docker-compose.temp.yml down
-            rm -f docker-compose.temp.yml
+            docker compose -f docker compose.temp.yml down
+            rm -f docker compose.temp.yml
             exit 1
         fi
         
@@ -84,16 +84,16 @@ EOF
         docker cp nautobot_temp:/opt/nautobot/jobs/ "$JOBS_DIR/"
         
         echo "Stopping temporary containers..."
-        docker-compose -f docker-compose.temp.yml down
+        docker compose -f docker compose.temp.yml down
         
-        echo "Removing temporary docker-compose file..."
-        rm -f docker-compose.temp.yml
+        echo "Removing temporary docker compose file..."
+        rm -f docker compose.temp.yml
         
         echo "Configuration and jobs copied successfully!"
     else
         echo "Error: nautobot container is not running."
-        docker-compose -f docker-compose.temp.yml down
-        rm -f docker-compose.temp.yml
+        docker compose -f docker compose.temp.yml down
+        rm -f docker compose.temp.yml
         exit 1
     fi
 else
@@ -107,4 +107,4 @@ else
     echo "Jobs directory already exists locally at $JOBS_DIR"
 fi
 
-echo "Setup complete! You can now start Nautobot with: docker-compose up -d"
+echo "Setup complete! You can now start Nautobot with: docker compose up -d"

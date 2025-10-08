@@ -17,8 +17,8 @@ The Containerlab devices and Nautobot need to be on the same network.
 ### Step 1: Verify Nautobot is Running
 ```bash
 cd /mnt/c/Users/BartSmeding/NetDevOps/Workspace/NAUTOBOT_JOBS/nautobot_zero_to_hero
-docker-compose up -d
-docker-compose ps
+docker compose up -d
+docker compose ps
 ```
 
 ### Step 2: Verify Containerlab Lab is Deployed
@@ -111,7 +111,7 @@ docker exec -it nzth-nautobot napalm --user admin --password admin --vendor noki
 **Solution**:
 ```bash
 docker exec -it nzth-nautobot pip install napalm-eos napalm-srl
-docker-compose restart nautobot
+docker compose restart nautobot
 ```
 
 ### Issue: "Device not found" in Nautobot GUI
@@ -126,11 +126,11 @@ If issues persist, restart everything:
 
 ```bash
 # Stop everything
-docker-compose down
+docker compose down
 containerlab destroy -t nautobot-lab.clab.yml
 
 # Start fresh
-docker-compose up -d
+docker compose up -d
 containerlab deploy -t nautobot-lab.clab.yml
 
 # Wait for devices to fully boot (30-60 seconds)
@@ -144,7 +144,7 @@ docker exec -it nzth-nautobot ping -c 3 172.20.20.11
 
 ```bash
 # Check all services are running
-docker-compose ps
+docker compose ps
 
 # Check containerlab devices
 containerlab inspect -t nautobot-lab.clab.yml

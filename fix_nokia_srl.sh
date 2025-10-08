@@ -3,4 +3,4 @@
 
 docker exec -u 0 -it nzth-nautobot pip install "protobuf==3.20.3" napalm-srl
 docker exec -u 0 -it nzth-nautobot_celery_worker_1 pip install "protobuf==3.20.3" napalm-srl
-docker-compose restart nautobot celery-worker-1
+docker compose restart nautobot celery-worker-1

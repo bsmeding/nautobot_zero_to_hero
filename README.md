@@ -22,7 +22,7 @@ This repository provides a complete Nautobot environment with:
 
 ```
 nautobot_zero_to_hero/
-├── docker-compose.yml          # Main Docker Compose configuration
+├── docker compose.yml          # Main Docker Compose configuration
 ├── .env                        # Environment variables (create this file)
 ├── install.sh                 # Automated installation (Docker, Containerlab, /etc/hosts, optional GUI)
 ├── update_hosts.sh            # Update /etc/hosts with lab device hostnames
@@ -133,10 +133,10 @@ EOF
 
 ```bash
 # Start the complete Nautobot stack
-docker-compose up -d
+docker compose up -d
 
 # Check status
-docker-compose ps
+docker compose ps
 ```
 
 ### 3. Access Nautobot
@@ -413,7 +413,7 @@ The Job template equivalent is provided in `scripts/6_transform_to_nautobot_job.
    > Always after adding/changing jobs on local system, restart the Nautobot container to reload in the GUI!
 
    ```bash
-   docker-compose restart nautobot
+   docker compose restart nautobot
    ```
 
 ### Adding Jinja2 Templates
@@ -474,7 +474,7 @@ A ready-to-use job that configures devices using config context data:
 - 🚀 Pushes config to devices via eAPI
 
 **Quick Start:**
-1. Restart Nautobot: `docker-compose restart nautobot`
+1. Restart Nautobot: `docker compose restart nautobot`
 2. Go to: **Jobs → Network Services → Configure Network Services**
 3. Select devices and services
 4. Enable **Dry Run** to preview
@@ -486,7 +486,7 @@ A ready-to-use job that configures devices using config context data:
 2. **See** `nautobot_advanced_settings.md` for advanced configuration options
 3. **Restart** Nautobot to apply changes:
    ```bash
-   docker-compose restart nautobot
+   docker compose restart nautobot
    ```
 
 ## 🧪 Testing and Validation
@@ -511,16 +511,16 @@ The included Containerlab lab provides a multi-vendor test environment:
 
 ```bash
 # Check Nautobot status
-docker-compose ps
+docker compose ps
 
 # View Nautobot logs
-docker-compose logs nautobot
+docker compose logs nautobot
 
 # Check database connectivity
-docker-compose exec nautobot nautobot-server shell -c "from django.db import connection; print(connection.ensure_connection())"
+docker compose exec nautobot nautobot-server shell -c "from django.db import connection; print(connection.ensure_connection())"
 
 # Test job execution
-docker-compose exec nautobot nautobot-server run_job --job-name "Test Job"
+docker compose exec nautobot nautobot-server run_job --job-name "Test Job"
 ```
 
 ## 🔍 Troubleshooting
@@ -537,17 +537,17 @@ docker-compose exec nautobot nautobot-server run_job --job-name "Test Job"
 
 ```bash
 # Reset everything
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 
 # View all logs
-docker-compose logs -f
+docker compose logs -f
 
 # Access Nautobot shell
-docker-compose exec nautobot nautobot-server shell
+docker compose exec nautobot nautobot-server shell
 
 # Backup database
-docker-compose exec postgres pg_dump -U nautobot nautobot > backup.sql
+docker compose exec postgres pg_dump -U nautobot nautobot > backup.sql
 ```
 
 ## 📖 Additional Resources

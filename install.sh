@@ -44,7 +44,7 @@ echo \
 
 echo "[INFO] Installing Docker Engine..."
 sudo apt-get update -y
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker compose-plugin
 
 echo "[INFO] Verifying Docker installation..."
 docker --version
@@ -182,7 +182,7 @@ echo ""
 echo "Next steps:"
 echo "  1. Log out and back in (or run: newgrp docker)"
 echo "  2. Deploy containerlab: cd containerlab && sudo containerlab deploy -t nautobot-lab.clab.yml"
-echo "  3. Start Nautobot: docker-compose up -d"
+echo "  3. Start Nautobot: docker compose up -d"
 if [ "$INSTALL_DESKTOP" = "true" ]; then
     echo "  4. Open VS Code: code ."
     echo "  5. Open Nautobot: firefox http://nautobotlab.dev:8080"

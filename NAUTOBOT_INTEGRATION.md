@@ -13,7 +13,7 @@ The lab is designed to work seamlessly with Nautobot through:
 ## 🔧 **Prerequisites**
 
 ### **1. Nautobot Configuration**
-The `docker-compose.yml` already includes:
+The `docker compose.yml` already includes:
 ```yaml
 environment:
   - NAUTOBOT_NAPALM_USERNAME=admin
@@ -31,7 +31,7 @@ environment:
 ### **Step 1: Deploy the Lab**
 ```bash
 # Start Nautobot
-docker-compose up -d
+docker compose up -d
 
 # Deploy containerlab
 cd containerlab

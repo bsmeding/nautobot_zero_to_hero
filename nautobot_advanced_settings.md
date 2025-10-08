@@ -419,22 +419,22 @@ After modifying the configuration:
 
 1. **Restart Nautobot**:
    ```bash
-   docker-compose restart nautobot
+   docker compose restart nautobot
    ```
 
 2. **Check logs** for any errors:
    ```bash
-   docker-compose logs nautobot
+   docker compose logs nautobot
    ```
 
 3. **Verify configuration**:
    ```bash
-   docker-compose exec nautobot nautobot-server check
+   docker compose exec nautobot nautobot-server check
    ```
 
 4. **Apply migrations** (if needed):
    ```bash
-   docker-compose exec nautobot nautobot-server migrate
+   docker compose exec nautobot nautobot-server migrate
    ```
 
 ## 📚 Additional Resources

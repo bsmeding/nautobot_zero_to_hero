@@ -30,7 +30,7 @@ cd nautobot_development_environment
 
 ```
 .
-├── docker-compose.yml          # Main Docker Compose configuration
+├── docker compose.yml          # Main Docker Compose configuration
 ├── .env                       # Environment variables (create this file)
 ├── get_config.sh              # Helper script to copy files from container
 ├── README.md                  # Comprehensive documentation
@@ -73,7 +73,7 @@ cd nautobot_development_environment
 
 3. **Start Nautobot**:
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
 4. **Access Nautobot**:
@@ -104,7 +104,7 @@ NAUTOBOT_REDIS_HOST=redis
 ```
 
 **Benefits:**
-- **Easy Customization**: Change ports, credentials, and container names without editing docker-compose.yml
+- **Easy Customization**: Change ports, credentials, and container names without editing docker compose.yml
 - **Version Control Safe**: Add `.env` to `.gitignore` to keep sensitive data out of version control
 - **Default Values**: If `.env` doesn't exist, Docker Compose uses built-in defaults
 - **Consistent Approach**: Same method used for both single and multi-customer setups
@@ -114,7 +114,7 @@ NAUTOBOT_REDIS_HOST=redis
 ### Configuration
 - Edit `./config/nautobot_config.py` locally
 - Changes are immediately reflected in the container
-- Restart containers after major config changes: `docker-compose restart`
+- Restart containers after major config changes: `docker compose restart`
 
 ### Plugin Configuration
 
@@ -258,7 +258,7 @@ To add a new plugin:
 
 4. **Restart Nautobot**:
    ```bash
-   docker-compose restart nautobot
+   docker compose restart nautobot
    ```
 
 ### Custom Jobs
@@ -287,7 +287,7 @@ To add a new plugin:
 ### If containers won't start:
 1. Check if config file exists: `ls -la config/nautobot_config.py`
 2. Run setup script: `./get_config.sh`
-3. Check logs: `docker-compose logs nautobot`
+3. Check logs: `docker compose logs nautobot`
 
 ### If jobs aren't loading:
 1. Ensure jobs directory structure is correct
@@ -297,7 +297,7 @@ To add a new plugin:
 
 ## Environment Variables
 
-Key environment variables are set in `docker-compose.yml`:
+Key environment variables are set in `docker compose.yml`:
 - Database configuration
 - Redis configuration
 - Superuser credentials
@@ -321,21 +321,21 @@ This section explains how to set up multiple Nautobot development environments f
 ```
 ~/nautobot-projects/
 ├── customer-a/
-│   ├── docker-compose.yml
+│   ├── docker compose.yml
 │   ├── config/
 │   │   └── nautobot_config.py
 │   ├── jobs/
 │   │   └── jobs/
 │   └── README.md
 ├── customer-b/
-│   ├── docker-compose.yml
+│   ├── docker compose.yml
 │   ├── config/
 │   │   └── nautobot_config.py
 │   ├── jobs/
 │   │   └── jobs/
 │   └── README.md
 └── customer-c/
-    ├── docker-compose.yml
+    ├── docker compose.yml
     ├── config/
     │   └── nautobot_config.py
     ├── jobs/
@@ -421,12 +421,12 @@ NAUTOBOT_DB_HOST=postgres_customer_c
 NAUTOBOT_REDIS_HOST=redis_customer_c
 ```
 
-**2. docker-compose.yml Already Uses Environment Variables**
+**2. docker compose.yml Already Uses Environment Variables**
 
-The `docker-compose.yml` file is already configured to use environment variables with default values:
+The `docker compose.yml` file is already configured to use environment variables with default values:
 
 ```yaml
-# docker-compose.yml (already configured with environment variables)
+# docker compose.yml (already configured with environment variables)
 services:
   nautobot:
     ports:
@@ -485,7 +485,7 @@ source .env
 
 # Run setup
 ./get_config.sh
-docker-compose up -d
+docker compose up -d
 
 echo "Customer A Nautobot available at: http://localhost:${NAUTOBOT_PORT}"
 echo "Username: ${SUPERUSER_NAME}"
@@ -502,7 +502,7 @@ source .env
 
 # Run setup
 ./get_config.sh
-docker-compose up -d
+docker compose up -d
 
 echo "Customer B Nautobot available at: http://localhost:${NAUTOBOT_PORT}"
 echo "Username: ${SUPERUSER_NAME}"
@@ -524,9 +524,9 @@ CUSTOMER_C_DIR="customer-c"
 case "$1" in
     "start-all")
         echo "Starting all customer environments..."
-        cd $CUSTOMER_A_DIR && docker-compose up -d
-        cd ../$CUSTOMER_B_DIR && docker-compose up -d
-        cd ../$CUSTOMER_C_DIR && docker-compose up -d
+        cd $CUSTOMER_A_DIR && docker compose up -d
+        cd ../$CUSTOMER_B_DIR && docker compose up -d
+        cd ../$CUSTOMER_C_DIR && docker compose up -d
         echo "All environments started!"
         echo "Customer A: http://localhost:$(cd $CUSTOMER_A_DIR && source .env && echo $NAUTOBOT_PORT)"
         echo "Customer B: http://localhost:$(cd $CUSTOMER_B_DIR && source .env && echo $NAUTOBOT_PORT)"
@@ -534,20 +534,20 @@ case "$1" in
         ;;
     "stop-all")
         echo "Stopping all customer environments..."
-        cd $CUSTOMER_A_DIR && docker-compose down
-        cd ../$CUSTOMER_B_DIR && docker-compose down
-        cd ../$CUSTOMER_C_DIR && docker-compose down
+        cd $CUSTOMER_A_DIR && docker compose down
+        cd ../$CUSTOMER_B_DIR && docker compose down
+        cd ../$CUSTOMER_C_DIR && docker compose down
         echo "All environments stopped!"
         ;;
     "status")
         echo "Checking status of all environments..."
-        cd $CUSTOMER_A_DIR && echo "Customer A:" && docker-compose ps
-        cd ../$CUSTOMER_B_DIR && echo "Customer B:" && docker-compose ps
-        cd ../$CUSTOMER_C_DIR && echo "Customer C:" && docker-compose ps
+        cd $CUSTOMER_A_DIR && echo "Customer A:" && docker compose ps
+        cd ../$CUSTOMER_B_DIR && echo "Customer B:" && docker compose ps
+        cd ../$CUSTOMER_C_DIR && echo "Customer C:" && docker compose ps
         ;;
     "logs")
         echo "Showing logs for $2..."
-        cd $2 && docker-compose logs -f
+        cd $2 && docker compose logs -f
         ;;
     *)
         echo "Usage: $0 {start-all|stop-all|status|logs <customer-dir>}"
@@ -636,23 +636,23 @@ class CustomerBMonitoringJob(Job):
 
 # Individual customer management
 cd ~/nautobot-projects/customer-a
-docker-compose up -d
-docker-compose logs -f
-docker-compose down
+docker compose up -d
+docker compose logs -f
+docker compose down
 ```
 
 ### Benefits of Using .env Files
 
-1. **Single docker-compose.yml**: No need to maintain multiple docker-compose files
+1. **Single docker compose.yml**: No need to maintain multiple docker compose files
 2. **Easy Configuration**: Simple key-value pairs in `.env` files
 3. **Version Control Safe**: `.env` files can be excluded from git (add to `.gitignore`)
 4. **Environment Isolation**: Each customer has completely separate configuration
-5. **Easy Maintenance**: Update one `.env` file instead of modifying docker-compose.yml
+5. **Easy Maintenance**: Update one `.env` file instead of modifying docker compose.yml
 6. **Default Values**: Docker Compose provides fallback values if variables are missing
 
 ### Best Practices for Multi-Customer Setup
 
-1. **Use .env Files**: Configure each customer via `.env` files instead of modifying docker-compose.yml
+1. **Use .env Files**: Configure each customer via `.env` files instead of modifying docker compose.yml
 2. **Unique Ports**: Each customer gets a unique port via `NAUTOBOT_PORT` in `.env`
 3. **Unique Container Names**: Prevent conflicts via container name variables in `.env`
 4. **Separate Databases**: Each customer has their own PostgreSQL database
