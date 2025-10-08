@@ -110,6 +110,25 @@ if [ "$INSTALL_DESKTOP" = "true" ]; then
     
     echo "[INFO] Desktop environment installed!"
     echo ""
+    
+    echo "[INFO] Installing Visual Studio Code..."
+    # Install VS Code dependencies
+    sudo apt-get install -y wget gpg apt-transport-https
+    
+    # Download and install Microsoft GPG key
+    wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
+    sudo install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
+    rm packages.microsoft.gpg
+    
+    # Add VS Code repository
+    echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list > /dev/null
+    
+    # Update and install VS Code
+    sudo apt-get update -y
+    sudo apt-get install -y code
+    
+    echo "[INFO] Visual Studio Code installed!"
+    echo ""
     echo "[INFO] Configuring ssh:// protocol handler..."
     
     # Create desktop file for ssh:// protocol handler
@@ -155,6 +174,8 @@ echo "  ✅ Containerlab installed"
 echo "  ✅ /etc/hosts updated with lab devices"
 if [ "$INSTALL_DESKTOP" = "true" ]; then
     echo "  ✅ Desktop environment (XFCE) installed"
+    echo "  ✅ Visual Studio Code installed"
+    echo "  ✅ Firefox browser installed"
     echo "  ✅ ssh:// protocol handler configured"
 fi
 echo ""
@@ -162,4 +183,8 @@ echo "Next steps:"
 echo "  1. Log out and back in (or run: newgrp docker)"
 echo "  2. Deploy containerlab: cd containerlab && sudo containerlab deploy -t nautobot-lab.clab.yml"
 echo "  3. Start Nautobot: docker-compose up -d"
+if [ "$INSTALL_DESKTOP" = "true" ]; then
+    echo "  4. Open VS Code: code ."
+    echo "  5. Open Nautobot: firefox http://nautobotlab.dev:8080"
+fi
 echo ""

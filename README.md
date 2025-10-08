@@ -88,13 +88,15 @@ INSTALL_DESKTOP=true bash install.sh
 - ✅ Containerlab
 - ✅ Updates `/etc/hosts` with lab device hostnames
 - ✅ **Optional**: XFCE desktop environment (lightweight)
+- ✅ **Optional**: Visual Studio Code
+- ✅ **Optional**: Firefox browser
 - ✅ **Optional**: ssh:// protocol handler (click ssh links to open terminal)
 
 **Desktop Environment Benefits:**
 - Click `ssh://admin@access1` links to auto-open SSH connection
 - GUI browser for accessing Nautobot UI
 - Better WSL integration with WSLg
-- Includes: XFCE Desktop, Firefox browser, Terminal emulator
+- Includes: XFCE Desktop, VS Code, Firefox browser, Terminal emulator
 
 **When to install desktop:**
 - ✅ If using WSL and want GUI support

@@ -14,6 +14,7 @@ INSTALL_DESKTOP=true bash install.sh
 - ✅ Docker & Docker Compose
 - ✅ Containerlab
 - ✅ XFCE Desktop Environment
+- ✅ Visual Studio Code
 - ✅ Firefox browser
 - ✅ Terminal emulator (xfce4-terminal)
 - ✅ ssh:// protocol handler
@@ -22,6 +23,7 @@ INSTALL_DESKTOP=true bash install.sh
 **Best for:**
 - WSL users who want GUI support
 - Users who want clickable ssh:// links
+- Developers who want VS Code in WSL
 - First-time setup
 
 ---
@@ -91,6 +93,7 @@ bash configure_ssh_handler.sh
 #### Desktop Environment (Optional)
 - **XFCE4** - Lightweight desktop environment
 - **xfce4-terminal** - Terminal emulator
+- **Visual Studio Code** - Code editor/IDE
 - **Firefox** - Web browser
 - **dbus-x11** - Desktop communication
 - **xdg-utils** - Desktop integration
@@ -122,11 +125,12 @@ bash configure_ssh_handler.sh
 | System update | 2-5 minutes |
 | Docker installation | 3-5 minutes |
 | Containerlab installation | 1-2 minutes |
-| Desktop environment | 5-10 minutes |
+| Desktop environment (XFCE) | 5-10 minutes |
+| Visual Studio Code | 2-3 minutes |
 | /etc/hosts update | < 1 minute |
 | ssh:// handler config | < 1 minute |
 | **Total (headless)** | **~10 minutes** |
-| **Total (with desktop)** | **~20 minutes** |
+| **Total (with desktop)** | **~25 minutes** |
 
 ## Post-Installation
 
@@ -145,6 +149,12 @@ groups | grep docker
 
 # Check /etc/hosts
 grep "\.lab" /etc/hosts
+
+# If desktop was installed, check:
+code --version              # VS Code
+firefox --version           # Firefox
+which xfce4-terminal        # Terminal
+xdg-mime query default x-scheme-handler/ssh  # ssh:// handler
 ```
 
 ### 2. Log Out and Back In
@@ -160,16 +170,26 @@ exit
 newgrp docker
 ```
 
-### 3. Start Desktop (if installed)
+### 3. Start Desktop and Applications (if installed)
 
-**For WSL with WSLg:**
+**For WSL with WSLg (Recommended - Windows 11 or updated Windows 10):**
 ```bash
 # GUI apps work automatically with WSLg
-firefox http://nautobotlab.dev:8080 &
-xfce4-terminal &
+code .                                      # Open VS Code in current directory
+firefox http://nautobotlab.dev:8080 &       # Open Nautobot in browser
+xfce4-terminal &                            # Open terminal
 ```
 
-**For WSL without WSLg or VcXsrv:**
+**For WSL with Windows Terminal (Alternative):**
+```bash
+# VS Code Remote-WSL extension (recommended)
+code .   # Opens VS Code on Windows connecting to WSL
+
+# Or launch GUI apps with WSLg
+firefox http://nautobotlab.dev:8080 &
+```
+
+**For WSL without WSLg (VcXsrv/X Server):**
 ```bash
 # Install VcXsrv on Windows, then:
 export DISPLAY=$(cat /etc/resolv.conf | grep nameserver | awk '{print $2}'):0
@@ -179,6 +199,7 @@ startxfce4
 **For native Linux:**
 ```bash
 startxfce4
+code .
 ```
 
 ### 4. Test ssh:// Links
