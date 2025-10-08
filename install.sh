@@ -12,6 +12,7 @@ sudo apt-get install -y \
     curl \
     gnupg-agent \
     software-properties-common \
+    iputils-ping \
     lsb-release \
     git
 
