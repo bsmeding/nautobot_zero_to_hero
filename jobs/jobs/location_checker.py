@@ -6,6 +6,7 @@ This job helps diagnose location-related issues in Nautobot.
 
 from nautobot.apps.jobs import Job, StringVar, BooleanVar, register_jobs
 
+name = "LAB Setup"
 
 class LocationChecker(Job):
     """

@@ -143,6 +143,9 @@ class PreflightLabSetup(Job):
             # Create cable connections
             self._create_cable_connections(site, active_status)
 
+            # Create config contexts for devices
+            self._create_config_contexts(site, active_status)
+
             # Skipping Golden Config setup per user request
 
             self.logger.info("Pre-flight lab setup completed successfully!")
@@ -676,14 +679,21 @@ class PreflightLabSetup(Job):
                 # Create or get IP address
                 try:
                     ip = IPAddress.objects.get(address=vm_ip)
-                    self.logger.info(f"Using existing IP: {vm_ip}")
+                    # Update DNS name if not set
+                    if not ip.dns_name:
+                        ip.dns_name = f"{vm_data['name']}.lab"
+                        ip.save()
+                        self.logger.info(f"Updated DNS name for IP {vm_ip}: {vm_data['name']}.lab")
+                    else:
+                        self.logger.info(f"Using existing IP: {vm_ip}")
                 except IPAddress.DoesNotExist:
                     ip = IPAddress.objects.create(
                         address=vm_ip,
                         status=status,
+                        dns_name=f"{vm_data['name']}.lab",
                         description=f"Primary IP for {vm_data['name']}"
                     )
-                    self.logger.info(f"Created IP: {vm_ip} for {vm_data['name']}")
+                    self.logger.info(f"Created IP: {vm_ip} for {vm_data['name']} with DNS name {vm_data['name']}.lab")
                 
                 # Assign IP to VM interface
                 vm_interface.ip_addresses.add(ip)
@@ -786,14 +796,21 @@ class PreflightLabSetup(Job):
                 # Create or get IP address
                 try:
                     ip = IPAddress.objects.get(address=config['mgmt_ip'])
-                    self.logger.info(f"Using existing IP: {config['mgmt_ip']}")
+                    # Update DNS name if not set
+                    if not ip.dns_name:
+                        ip.dns_name = f"{device_name}.lab"
+                        ip.save()
+                        self.logger.info(f"Updated DNS name for IP {config['mgmt_ip']}: {device_name}.lab")
+                    else:
+                        self.logger.info(f"Using existing IP: {config['mgmt_ip']}")
                 except IPAddress.DoesNotExist:
                     ip = IPAddress.objects.create(
                         address=config['mgmt_ip'],
                         status=status,
+                        dns_name=f"{device_name}.lab",
                         description=f"Management IP for {device_name}"
                     )
-                    self.logger.info(f"Created IP: {config['mgmt_ip']} for {device_name}")
+                    self.logger.info(f"Created IP: {config['mgmt_ip']} for {device_name} with DNS name {device_name}.lab")
                 
                 # Assign IP to management interface
                 mgmt_interface.ip_addresses.add(ip)
@@ -878,6 +895,188 @@ class PreflightLabSetup(Job):
         
         # All cable connections created successfully
         self.logger.info("All cable connections created successfully")
+
+    def _create_config_contexts(self, site, status):
+        """Create config contexts for devices with platform-specific configurations."""
+        from nautobot.extras.models import ConfigContext, Role
+        from nautobot.dcim.models import Platform
+        from django.contrib.contenttypes.models import ContentType
+
+        # Common config context for all devices
+        common_context_data = {
+            "ntp_servers": [
+                "192.168.1.1",
+                "192.168.1.2", 
+                "time.google.com"
+            ],
+            "dns_servers": [
+                "8.8.8.8",
+                "8.8.4.4",
+                "1.1.1.1"
+            ],
+            "syslog_hosts": [
+                {"host": "192.168.1.100", "port": 514},
+                {"host": "192.168.1.101", "port": 514}
+            ],
+            "snmp": {
+                "community": "nautobot_lab_ro",
+                "location": "NetDevOps Lab"
+            },
+            "timezone": "UTC",
+            "domain_name": "netdevops.lab"
+        }
+
+        # Create common config context for all lab devices
+        common_context, created = ConfigContext.objects.get_or_create(
+            name="Lab Common Configuration",
+            defaults={
+                "weight": 1000,
+                "description": "Common configuration for all lab devices",
+                "data": common_context_data,
+                "is_active": True
+            }
+        )
+        if created:
+            self.logger.info("Created common config context")
+        else:
+            # Update existing context
+            common_context.data = common_context_data
+            common_context.weight = 1000
+            common_context.save()
+            self.logger.info("Updated common config context")
+
+        # Associate with site
+        common_context.locations.add(site)
+
+        # Arista-specific configuration
+        arista_context_data = {
+            "platform_specific": {
+                "cli_commands": {
+                    "save_config": "write memory",
+                    "show_version": "show version"
+                },
+                "management_interface": "Management0",
+                "ntp_source_interface": "Management0",
+                "logging": {
+                    "buffer_size": 16384,
+                    "source_interface": "Management0"
+                },
+                "banner": {
+                    "motd": "Arista Device - NetDevOps Lab - Unauthorized access prohibited"
+                }
+            },
+            "features": {
+                "lldp": True,
+                "stp": "rapid-pvst"
+            }
+        }
+
+        arista_platform = Platform.objects.get(name="Arista EOS")
+        arista_context, created = ConfigContext.objects.get_or_create(
+            name="Arista Platform Configuration",
+            defaults={
+                "weight": 2000,
+                "description": "Platform-specific configuration for Arista EOS devices",
+                "data": arista_context_data,
+                "is_active": True
+            }
+        )
+        if created:
+            self.logger.info("Created Arista config context")
+        else:
+            # Update existing context
+            arista_context.data = arista_context_data
+            arista_context.weight = 2000
+            arista_context.save()
+            self.logger.info("Updated Arista config context")
+
+        # Associate with Arista platform
+        arista_context.platforms.add(arista_platform)
+        arista_context.locations.add(site)
+
+        # Nokia-specific configuration
+        nokia_context_data = {
+            "platform_specific": {
+                "cli_commands": {
+                    "save_config": "tools system configuration save",
+                    "show_version": "info system version"
+                },
+                "management_interface": "mgmt0",
+                "ntp_source_interface": "mgmt0",
+                "logging": {
+                    "buffer_size": 10000,
+                    "source_interface": "mgmt0"
+                },
+                "banner": {
+                    "motd": "Nokia SR Linux Device - NetDevOps Lab - Unauthorized access prohibited"
+                }
+            },
+            "features": {
+                "lldp": True,
+                "spanning_tree": "mstp"
+            }
+        }
+
+        nokia_platform = Platform.objects.get(name="Nokia SR Linux")
+        nokia_context, created = ConfigContext.objects.get_or_create(
+            name="Nokia Platform Configuration",
+            defaults={
+                "weight": 2000,
+                "description": "Platform-specific configuration for Nokia SR Linux devices",
+                "data": nokia_context_data,
+                "is_active": True
+            }
+        )
+        if created:
+            self.logger.info("Created Nokia config context")
+        else:
+            # Update existing context
+            nokia_context.data = nokia_context_data
+            nokia_context.weight = 2000
+            nokia_context.save()
+            self.logger.info("Updated Nokia config context")
+
+        # Associate with Nokia platform
+        nokia_context.platforms.add(nokia_platform)
+        nokia_context.locations.add(site)
+
+        # Role-specific configuration - Access Switches
+        access_context_data = {
+            "role_specific": {
+                "port_security": {
+                    "enabled": True,
+                    "max_mac_addresses": 2
+                },
+                "default_vlan": 100,
+                "allowed_vlans": [10, 20, 30, 100, 200, 300],
+                "stp_portfast": True
+            }
+        }
+
+        access_role = Role.objects.get(name="Access Switch")
+        access_context, created = ConfigContext.objects.get_or_create(
+            name="Access Switch Role Configuration",
+            defaults={
+                "weight": 3000,
+                "description": "Role-specific configuration for access switches",
+                "data": access_context_data,
+                "is_active": True
+            }
+        )
+        if created:
+            self.logger.info("Created Access Switch config context")
+        else:
+            # Update existing context
+            access_context.data = access_context_data
+            access_context.weight = 3000
+            access_context.save()
+            self.logger.info("Updated Access Switch config context")
+
+        # Associate with access role
+        access_context.roles.add(access_role)
+        access_context.locations.add(site)
+
+        self.logger.info("Config contexts created and associated successfully")
 
 
 register_jobs(PreflightLabSetup)

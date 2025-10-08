@@ -339,14 +339,34 @@ clusters:
     cluster_type__name: "Containerlab"
     cluster_group__name: "Lab-Cluster-Group"
 
-# # IP Addresses for Virtual Machines
+# # IP Addresses for Virtual Machines and Devices
 ip_addresses:
+  # Device IP addresses with DNS names
+  - "!create_or_update:address": "172.20.20.11/24"
+    status__name: "Active"
+    dns_name: "access1.lab"
+    description: "Primary IP for access1"
+  - "!create_or_update:address": "172.20.20.12/24"
+    status__name: "Active"
+    dns_name: "access2.lab"
+    description: "Primary IP for access2"
+  - "!create_or_update:address": "172.20.20.13/24"
+    status__name: "Active"
+    dns_name: "dist1.lab"
+    description: "Primary IP for dist1"
+  - "!create_or_update:address": "172.20.20.14/24"
+    status__name: "Active"
+    dns_name: "rtr1.lab"
+    description: "Primary IP for rtr1"
+  # VM IP addresses with DNS names
   - "!create_or_update:address": "172.20.20.15/24"
     status__name: "Active"
+    dns_name: "ztp.lab"
     description: "Primary IP for ztp VM"
   - "!create_or_update:address": "172.20.20.16/24"
     status__name: "Active"
-    description: "Primary IP for management VM"
+    dns_name: "mgmt.lab"
+    description: "Primary IP for mgmt VM"
 
 # Virtual Machines
 virtual_machines:
@@ -405,4 +425,101 @@ virtual_machines:
 #     type__name: "Cat6"
 #     status__name: "Active"
 #     label: "rtr1-ethernet-1/3 to management-eth1"
+
+# Config Contexts - Common and Platform-Specific Configurations
+config_contexts:
+  # Common configuration for all lab devices
+  - "!create_or_update:name": "Lab Common Configuration"
+    weight: 1000
+    description: "Common configuration for all lab devices"
+    is_active: true
+    data:
+      ntp_servers:
+        - "192.168.1.1"
+        - "192.168.1.2"
+        - "time.google.com"
+      dns_servers:
+        - "8.8.8.8"
+        - "8.8.4.4"
+        - "1.1.1.1"
+      syslog_hosts:
+        - host: "192.168.1.100"
+          port: 514
+        - host: "192.168.1.101"
+          port: 514
+      snmp:
+        community: "nautobot_lab_ro"
+        location: "NetDevOps Lab"
+      timezone: "UTC"
+      domain_name: "netdevops.lab"
+    locations:
+      - "!get:name": "netdevops.it_lab"
+
+  # Arista Platform-specific configuration
+  - "!create_or_update:name": "Arista Platform Configuration"
+    weight: 2000
+    description: "Platform-specific configuration for Arista EOS devices"
+    is_active: true
+    data:
+      platform_specific:
+        cli_commands:
+          save_config: "write memory"
+          show_version: "show version"
+        management_interface: "Management0"
+        ntp_source_interface: "Management0"
+        logging:
+          buffer_size: 16384
+          source_interface: "Management0"
+        banner:
+          motd: "Arista Device - NetDevOps Lab - Unauthorized access prohibited"
+      features:
+        lldp: true
+        stp: "rapid-pvst"
+    platforms:
+      - "!get:name": "Arista EOS"
+    locations:
+      - "!get:name": "netdevops.it_lab"
+
+  # Nokia Platform-specific configuration
+  - "!create_or_update:name": "Nokia Platform Configuration"
+    weight: 2000
+    description: "Platform-specific configuration for Nokia SR Linux devices"
+    is_active: true
+    data:
+      platform_specific:
+        cli_commands:
+          save_config: "tools system configuration save"
+          show_version: "info system version"
+        management_interface: "mgmt0"
+        ntp_source_interface: "mgmt0"
+        logging:
+          buffer_size: 10000
+          source_interface: "mgmt0"
+        banner:
+          motd: "Nokia SR Linux Device - NetDevOps Lab - Unauthorized access prohibited"
+      features:
+        lldp: true
+        spanning_tree: "mstp"
+    platforms:
+      - "!get:name": "Nokia SR Linux"
+    locations:
+      - "!get:name": "netdevops.it_lab"
+
+  # Role-specific configuration for Access Switches
+  - "!create_or_update:name": "Access Switch Role Configuration"
+    weight: 3000
+    description: "Role-specific configuration for access switches"
+    is_active: true
+    data:
+      role_specific:
+        port_security:
+          enabled: true
+          max_mac_addresses: 2
+        default_vlan: 100
+        allowed_vlans: [10, 20, 30, 100, 200, 300]
+        stp_portfast: true
+    roles:
+      - "!get:name": "Access Switch"
+    locations:
+      - "!get:name": "netdevops.it_lab"
 

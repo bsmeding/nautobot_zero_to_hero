@@ -14,6 +14,7 @@ This repository provides a complete Nautobot environment with:
 - **Containerlab Testbed**: Multi-vendor network lab for hands-on practice
 - **Custom Jobs**: Python jobs that demonstrate automation workflows
 - **Jinja2 Templates**: Configuration templates for multi-vendor devices
+- **Config Contexts**: Hierarchical configuration data for platform-specific settings
 - **Configuration Management**: Complete Nautobot configuration with plugins
 - **Blog Series Integration**: Structured to follow the "Nautobot Zero to Hero" series
 
@@ -23,6 +24,8 @@ This repository provides a complete Nautobot environment with:
 nautobot_zero_to_hero/
 ├── docker-compose.yml          # Main Docker Compose configuration
 ├── .env                        # Environment variables (create this file)
+├── install.sh                 # Automated installation script (Docker, Containerlab, /etc/hosts)
+├── update_hosts.sh            # Update /etc/hosts with lab device hostnames
 ├── get_config.sh              # Helper script to copy files from container
 ├── README.md                  # This comprehensive guide
 ├── nautobot_advanced_settings.md  # Advanced configuration options
@@ -110,6 +113,41 @@ sudo containerlab deploy -t nautobot-lab.clab.yml
 
 # Check lab status
 sudo containerlab show -t nautobot-lab.clab.yml
+```
+
+### 5. Update /etc/hosts (Optional but Recommended)
+
+Add lab device hostnames to your `/etc/hosts` file for easier access:
+
+**Option 1: Standalone script**
+```bash
+sudo bash update_hosts.sh
+```
+
+**Option 2: Already included in install.sh**
+```bash
+# If you ran install.sh, hosts file is already updated
+# Otherwise, run the update script above
+```
+
+**What gets added:**
+- `nautobotlab.dev` → 127.0.0.1 (Nautobot UI)
+- `access1.lab` / `access1` → 172.20.20.11
+- `access2.lab` / `access2` → 172.20.20.12
+- `dist1.lab` / `dist1` → 172.20.20.13
+- `rtr1.lab` / `rtr1` → 172.20.20.14
+- `ztp.lab` / `ztp` → 172.20.20.15
+- `mgmt.lab` / `mgmt` → 172.20.20.16
+
+**Benefits:**
+```bash
+# Access Nautobot with friendly URL
+http://nautobotlab.dev:8080
+
+# SSH to devices using hostnames
+ssh admin@access1
+ssh admin@dist1.lab
+ping rtr1
 ```
 
 ## 📚 Blog Series Integration
@@ -309,6 +347,56 @@ The Job template equivalent is provided in `scripts/6_transform_to_nautobot_job.
    ```
 
 2. **Use in Golden Config** or custom jobs
+
+### Config Contexts
+
+Both the **Preflight Lab Setup** and **Design Builder Lab Setup** jobs create identical config contexts that provide hierarchical configuration data:
+
+#### Created Config Contexts:
+1. **Lab Common Configuration** (weight 1000) - NTP, DNS, Syslog, SNMP, timezone
+2. **Arista Platform Configuration** (weight 2000) - Arista EOS specific settings
+3. **Nokia Platform Configuration** (weight 2000) - Nokia SR Linux specific settings  
+4. **Access Switch Role Configuration** (weight 3000) - Role-based settings
+
+#### Example Usage in Templates:
+```jinja2
+{# Config context data is automatically available #}
+hostname {{ device.name }}
+!
+{% for ntp_server in ntp_servers %}
+ntp server {{ ntp_server }}
+{% endfor %}
+!
+{% if platform_specific.management_interface == 'Management0' %}
+  {# Arista EOS specific #}
+  {{ platform_specific.cli_commands.save_config }}
+{% elif platform_specific.management_interface == 'mgmt0' %}
+  {# Nokia SR Linux specific #}
+  {{ platform_specific.cli_commands.save_config }}
+{% endif %}
+```
+
+See [`jobs/jobs/CONFIG_CONTEXTS.md`](jobs/jobs/CONFIG_CONTEXTS.md) for detailed documentation and examples.
+
+#### Practical Job: Configure Network Services
+
+A ready-to-use job that configures devices using config context data:
+
+**Job:** `Configure Network Services` (in Jobs → Network Services)
+
+**Features:**
+- 📋 Multi-device selection
+- ⚙️ Configurable services: NTP, DNS, Syslog, SNMP
+- 🔍 Dry-run mode to preview commands
+- 🔄 Platform-aware (Arista vs Nokia)
+- 🚀 Pushes config to devices via eAPI
+
+**Quick Start:**
+1. Restart Nautobot: `docker-compose restart nautobot`
+2. Go to: **Jobs → Network Services → Configure Network Services**
+3. Select devices and services
+4. Enable **Dry Run** to preview
+5. Run to apply configuration
 
 ### Modifying Configuration
 

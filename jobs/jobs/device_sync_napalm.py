@@ -7,6 +7,7 @@ from nautobot.ipam.models import IPAddress
 from napalm import get_network_driver
 from napalm.base.exceptions import ConnectionException
 
+name = "LAB Setup"
 
 class DeviceSyncNAPALM(Job):
     """
