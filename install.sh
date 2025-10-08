@@ -33,18 +33,79 @@ sudo apt-get install -y \
     lsb-release \
     git
 
-echo "[INFO] Adding Docker’s official GPG key..."
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker.gpg
+echo "[INFO] Detecting OS distribution..."
+# Detect if running Ubuntu or Debian
+if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    OS=$ID
+    VERSION_CODENAME=$VERSION_CODENAME
+    echo "  Detected: $OS $VERSION_CODENAME"
+else
+    echo "[ERROR] Cannot detect OS version"
+    exit 1
+fi
+
+# Set Docker repo based on OS
+if [ "$OS" = "ubuntu" ]; then
+    DOCKER_REPO_URL="https://download.docker.com/linux/ubuntu"
+    DOCKER_GPG_URL="https://download.docker.com/linux/ubuntu/gpg"
+elif [ "$OS" = "debian" ]; then
+    DOCKER_REPO_URL="https://download.docker.com/linux/debian"
+    DOCKER_GPG_URL="https://download.docker.com/linux/debian/gpg"
+else
+    echo "[WARNING] Unsupported OS: $OS, trying Ubuntu repository..."
+    DOCKER_REPO_URL="https://download.docker.com/linux/ubuntu"
+    DOCKER_GPG_URL="https://download.docker.com/linux/ubuntu/gpg"
+fi
+
+echo "[INFO] Adding Docker's official GPG key..."
+sudo mkdir -p /usr/share/keyrings
+
+# Remove old key if exists to avoid overwrite warnings
+if [ -f /usr/share/keyrings/docker.gpg ]; then
+    echo "  Removing existing Docker GPG key..."
+    sudo rm -f /usr/share/keyrings/docker.gpg
+fi
+
+curl -fsSL $DOCKER_GPG_URL | sudo gpg --dearmor -o /usr/share/keyrings/docker.gpg
+sudo chmod a+r /usr/share/keyrings/docker.gpg
+echo "  Docker GPG key added successfully"
 
 echo "[INFO] Setting up Docker repository..."
 echo \
-  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-  $(lsb_release -cs) stable" | \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] $DOCKER_REPO_URL \
+  $VERSION_CODENAME stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
 echo "[INFO] Installing Docker Engine..."
 sudo apt-get update -y
-sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker compose-plugin
+
+# Check if packages are available
+echo "  Checking package availability..."
+if ! apt-cache policy docker-ce | grep -q "Candidate:"; then
+    echo "[ERROR] Docker packages not found in repository!"
+    echo "  Repository: $DOCKER_REPO_URL"
+    echo "  Codename: $VERSION_CODENAME"
+    echo ""
+    echo "Troubleshooting:"
+    echo "  1. Check: cat /etc/apt/sources.list.d/docker.list"
+    echo "  2. Run: sudo apt-get update"
+    echo "  3. Check: apt-cache policy docker-ce"
+    echo ""
+    echo "Your Docker repository file should contain:"
+    echo "  deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] $DOCKER_REPO_URL $VERSION_CODENAME stable"
+    exit 1
+fi
+
+echo "  ✅ Docker packages found in repository"
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+echo "  Installed:"
+echo "    ✅ docker-ce (Docker Engine)"
+echo "    ✅ docker-ce-cli (Docker CLI)"
+echo "    ✅ containerd.io (Container runtime)"
+echo "    ✅ docker-buildx-plugin (Build plugin)"
+echo "    ✅ docker-compose-plugin (Compose V2 plugin)"
 
 echo "[INFO] Verifying Docker installation..."
 docker --version
@@ -115,10 +176,18 @@ if [ "$INSTALL_DESKTOP" = "true" ]; then
     # Install VS Code dependencies
     sudo apt-get install -y wget gpg apt-transport-https
     
+    # Remove old Microsoft GPG key if exists
+    if [ -f /etc/apt/keyrings/packages.microsoft.gpg ]; then
+        echo "  Removing existing Microsoft GPG key..."
+        sudo rm -f /etc/apt/keyrings/packages.microsoft.gpg
+    fi
+    
     # Download and install Microsoft GPG key
+    sudo mkdir -p /etc/apt/keyrings
     wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
     sudo install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
     rm packages.microsoft.gpg
+    echo "  Microsoft GPG key added successfully"
     
     # Add VS Code repository
     echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list > /dev/null
