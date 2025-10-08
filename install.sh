@@ -225,6 +225,21 @@ if [ "$INSTALL_DESKTOP" = "true" ]; then
     echo "[INFO] Desktop environment installed!"
     echo ""
     
+    echo "[INFO] Configuring desktop for console boot (no graphical login)..."
+    # Set system to boot to console (multi-user.target) instead of graphical login
+    # This avoids "Failed to start session" issues and is better for lab environments
+    sudo systemctl set-default multi-user.target
+    
+    # Disable display manager if it was installed
+    if systemctl is-enabled lightdm &> /dev/null; then
+        sudo systemctl disable lightdm
+        echo "  Disabled graphical login (LightDM)"
+    fi
+    
+    echo "  ✅ System will boot to console"
+    echo "  ✅ Start GUI apps manually when needed (code, firefox, etc.)"
+    echo ""
+    
     echo "[INFO] Installing Visual Studio Code..."
     # Install VS Code dependencies
     sudo apt-get install -y wget gpg apt-transport-https
@@ -275,11 +290,17 @@ EOF
     echo "[INFO] ssh:// protocol handler configured!"
     echo "  You can now click ssh://admin@access1 links to open SSH in terminal"
     echo ""
-    echo "[INFO] To start the desktop environment, run:"
-    echo "  export DISPLAY=:0"
-    echo "  startxfce4"
+    echo "[INFO] Desktop Environment Usage:"
+    echo "  System configured to boot to CONSOLE (no graphical login screen)"
+    echo "  This avoids login issues and is better for lab environments"
     echo ""
-    echo "Or use Windows Terminal with WSLg (automatic GUI support)"
+    echo "  After reboot/login via console, launch GUI apps:"
+    echo "    code .                              # VS Code"
+    echo "    firefox http://nautobotlab.dev:8080 &  # Browser"
+    echo "    xfce4-terminal &                    # Terminal"
+    echo ""
+    echo "  Or use the helper script:"
+    echo "    bash start_desktop.sh"
     echo ""
 else
     echo ""
