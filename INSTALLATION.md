@@ -233,6 +233,23 @@ exit
 newgrp docker
 ```
 
+### "Conflicting values" for VS Code repository
+If you see: `Conflicting values set for option Signed-By regarding source https://packages.microsoft.com/repos/code`
+
+This means you have duplicate VS Code repositories. The install script now handles this automatically, but if you see this error:
+
+```bash
+# Clean up manually:
+sudo rm -f /etc/apt/sources.list.d/vscode.list*
+sudo rm -f /etc/apt/sources.list.d/*microsoft*.list*
+sudo rm -f /etc/apt/keyrings/packages.microsoft.gpg
+sudo rm -f /usr/share/keyrings/packages.microsoft.gpg
+sudo apt-get update
+
+# Then re-run installation:
+INSTALL_DESKTOP=true bash install.sh
+```
+
 ### Desktop won't start
 ```bash
 # For WSL, ensure WSLg is enabled (Windows 11 or updated Windows 10)

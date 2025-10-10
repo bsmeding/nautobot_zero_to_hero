@@ -293,24 +293,32 @@ if [ "$INSTALL_DESKTOP" = "true" ]; then
     # Install VS Code dependencies
     sudo apt-get install -y wget gpg apt-transport-https
     
-    # Remove old Microsoft GPG key if exists
-    if [ -f /etc/apt/keyrings/packages.microsoft.gpg ]; then
-        echo "  Removing existing Microsoft GPG key..."
-        sudo rm -f /etc/apt/keyrings/packages.microsoft.gpg
-    fi
+    # Clean up any existing VS Code repository entries to avoid conflicts
+    echo "  Cleaning up old VS Code repository entries..."
+    sudo rm -f /etc/apt/sources.list.d/vscode.list*
+    sudo rm -f /etc/apt/sources.list.d/*microsoft*.list*
     
-    # Download and install Microsoft GPG key
+    # Remove old Microsoft GPG keys from both possible locations
+    sudo rm -f /etc/apt/keyrings/packages.microsoft.gpg
+    sudo rm -f /etc/apt/keyrings/microsoft.gpg
+    sudo rm -f /usr/share/keyrings/packages.microsoft.gpg
+    sudo rm -f /usr/share/keyrings/microsoft.gpg
+    
+    # Download and install Microsoft GPG key (single location only)
     sudo mkdir -p /etc/apt/keyrings
     wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
     sudo install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
     rm packages.microsoft.gpg
-    echo "  Microsoft GPG key added successfully"
+    echo "  ✅ Microsoft GPG key installed to /etc/apt/keyrings/packages.microsoft.gpg"
     
-    # Add VS Code repository
+    # Add VS Code repository (single entry only)
     echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list > /dev/null
+    echo "  ✅ VS Code repository added to /etc/apt/sources.list.d/vscode.list"
     
     # Update and install VS Code
+    echo "  Updating package lists..."
     sudo apt-get update -y
+    echo "  Installing VS Code..."
     sudo apt-get install -y code
     
     echo "[INFO] Visual Studio Code installed!"
@@ -340,21 +348,38 @@ EOF
     echo "  You can now click ssh://admin@access1 links to open SSH in terminal"
     echo ""
     echo "[INFO] Desktop Environment Usage:"
-    echo "  System configured to boot to CONSOLE (no graphical login screen)"
-    echo "  This avoids login issues and is better for lab environments"
+    echo "  ✅ System configured for CONSOLE LOGIN (no graphical login)"
+    echo "  ✅ This prevents 'Failed to start session' errors"
     echo ""
-    echo "  After reboot/login via console, launch GUI apps:"
-    echo "    code .                              # VS Code"
-    echo "    firefox http://nautobotlab.dev:8080 &  # Browser"
-    echo "    xfce4-terminal &                    # Terminal"
-    echo ""
-    echo "  Or use the helper script:"
-    echo "    bash start_desktop.sh"
+    if [ "$IS_WSL" = "true" ]; then
+        echo "  WSL Usage:"
+        echo "    1. Login via text console"
+        echo "    2. Use helper script: bash start_desktop.sh"
+        echo "    3. Or launch apps directly:"
+        echo "       code .                              # VS Code"
+        echo "       firefox http://nautobotlab.dev:8080 &  # Browser"
+        echo ""
+        echo "  💡 TIP: Use Windows browser to access http://localhost:8080"
+        echo "  💡 This is easier than running desktop in WSL"
+    else
+        echo "  After reboot/login via console, launch GUI apps:"
+        echo "    code .                              # VS Code"
+        echo "    firefox http://nautobotlab.dev:8080 &  # Browser"
+        echo "    xfce4-terminal &                    # Terminal"
+        echo ""
+        echo "  Or use the helper script:"
+        echo "    bash start_desktop.sh"
+    fi
     echo ""
 else
     echo ""
     echo "[INFO] Desktop environment not installed (INSTALL_DESKTOP=false)"
-    echo "  To install later, run: INSTALL_DESKTOP=true bash install.sh"
+    if [ "$IS_WSL" = "true" ]; then
+        echo "  ✅ Recommended for WSL: Access Nautobot from Windows browser"
+        echo "  To force install desktop: INSTALL_DESKTOP=true bash install.sh"
+    else
+        echo "  To install later, run: INSTALL_DESKTOP=true bash install.sh"
+    fi
     echo ""
 fi
 
