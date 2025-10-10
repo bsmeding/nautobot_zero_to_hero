@@ -145,3 +145,6 @@ echo "  firefox <url> &             # Open browser"
 echo "  xdg-open ssh://admin@access1  # Open SSH connection"
 echo ""
 
+
+
+
