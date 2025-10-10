@@ -1,22 +1,58 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Detect if running in WSL
+IS_WSL=false
+if grep -qi microsoft /proc/version 2>/dev/null; then
+    IS_WSL=true
+fi
+
 # Configuration options
-INSTALL_DESKTOP="${INSTALL_DESKTOP:-false}"  # Set to 'true' to install desktop environment
+# In WSL: Desktop disabled by default (requires explicit INSTALL_DESKTOP=true)
+# In native Linux: Desktop disabled by default (requires explicit INSTALL_DESKTOP=true)
+INSTALL_DESKTOP="${INSTALL_DESKTOP:-false}"
 
 echo "=========================================="
 echo " Nautobot Lab Installation Script"
 echo "=========================================="
 echo ""
-echo "Options:"
-echo "  INSTALL_DESKTOP=${INSTALL_DESKTOP} (set to 'true' to install desktop environment)"
+echo "Environment:"
+if [ "$IS_WSL" = "true" ]; then
+    echo "  Running in: WSL (Windows Subsystem for Linux)"
+else
+    echo "  Running in: Native Linux"
+fi
 echo ""
+echo "Options:"
+echo "  INSTALL_DESKTOP=${INSTALL_DESKTOP}"
+echo ""
+if [ "$IS_WSL" = "true" ]; then
+    echo "⚠️  WSL DETECTED: Desktop environment disabled by default"
+    echo "  - WSL works best without a desktop environment"
+    echo "  - Use WSL to run Docker/Containerlab, access via Windows browser"
+    echo "  - To force desktop install: INSTALL_DESKTOP=true bash install.sh"
+    echo ""
+fi
 echo "Usage:"
-echo "  bash install.sh                          # Standard installation"
-echo "  INSTALL_DESKTOP=true bash install.sh     # Install with desktop environment"
+echo "  bash install.sh                          # Standard installation (no desktop)"
+echo "  INSTALL_DESKTOP=true bash install.sh     # Force install desktop + VS Code"
 echo ""
 echo "=========================================="
 echo ""
+
+# Safety check: Confirm desktop installation in WSL
+if [ "$IS_WSL" = "true" ] && [ "$INSTALL_DESKTOP" = "true" ]; then
+    echo "⚠️  WARNING: You are about to install desktop environment in WSL"
+    echo "  This is not recommended and may cause login issues!"
+    echo ""
+    read -p "Are you sure you want to continue? [y/N]: " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Installation cancelled."
+        exit 0
+    fi
+    echo ""
+fi
 
 echo "[INFO] Updating system..."
 sudo apt-get update -y
@@ -225,19 +261,32 @@ if [ "$INSTALL_DESKTOP" = "true" ]; then
     echo "[INFO] Desktop environment installed!"
     echo ""
     
-    echo "[INFO] Configuring desktop for console boot (no graphical login)..."
+    echo "[INFO] Configuring desktop for console boot (NEVER use graphical login)..."
     # Set system to boot to console (multi-user.target) instead of graphical login
     # This avoids "Failed to start session" issues and is better for lab environments
     sudo systemctl set-default multi-user.target
     
-    # Disable display manager if it was installed
-    if systemctl is-enabled lightdm &> /dev/null; then
-        sudo systemctl disable lightdm
-        echo "  Disabled graphical login (LightDM)"
-    fi
+    # Stop and disable ALL display managers to prevent graphical login
+    for dm in lightdm gdm gdm3 sddm xdm; do
+        if systemctl list-unit-files | grep -q "^${dm}.service"; then
+            if systemctl is-active $dm &>/dev/null; then
+                sudo systemctl stop $dm
+                echo "  Stopped $dm"
+            fi
+            if systemctl is-enabled $dm &>/dev/null; then
+                sudo systemctl disable $dm
+                echo "  Disabled $dm"
+            fi
+        fi
+    done
     
-    echo "  ✅ System will boot to console"
-    echo "  ✅ Start GUI apps manually when needed (code, firefox, etc.)"
+    # Remove display manager packages to be absolutely sure
+    sudo apt-get remove -y lightdm lightdm-gtk-greeter gdm3 2>/dev/null || true
+    
+    echo ""
+    echo "  ✅ System configured for CONSOLE BOOT ONLY"
+    echo "  ✅ No graphical login screen will appear"
+    echo "  ✅ Login via text console, then start GUI apps manually"
     echo ""
     
     echo "[INFO] Installing Visual Studio Code..."
