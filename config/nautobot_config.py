@@ -503,9 +503,9 @@ NAPALM_ARGS = {
 
 PLUGINS = [
     "nautobot_design_builder",
-    "nautobot_device_onboarding",
-    "nautobot_golden_config",
-    "nautobot_ssot",
+#    "nautobot_device_onboarding",
+#    "nautobot_golden_config",
+#    "nautobot_ssot",
 ]
 
 # Plugins configuration settings. These settings are used by various plugins that the user may have installed.
@@ -548,9 +548,6 @@ PLUGINS_CONFIG = {
             'jinja_path_template': '{{obj.platform.slug}}/{{obj.platform.slug }}_main.j2',
             'backup_test_connectivity': False,
         },
-    },
-    'nautobot_ssot': {
-        'hide_example_jobs': True,
     }
 }
 
