@@ -12,7 +12,7 @@ services:
     image: &shared_image bsmeding/nautobot:2.4.19-py3.12
     depends_on:
       postgres:
-        condition: "service_started"
+        condition: "service_healthy"
       redis:
         condition: "service_started"
       nautobot-init:
@@ -57,6 +57,7 @@ services:
     volumes:
       - ./config/nautobot_config.py:/opt/nautobot/nautobot_config.py
       - ./jobs:/opt/nautobot/jobs
+      - ./media:/opt/nautobot/media
     restart: unless-stopped
     # healthcheck:
     #   test: ["CMD", "curl", "-f", "http://localhost:8080/health/"]
@@ -64,7 +65,8 @@ services:
     #   timeout: 10s
     #   retries: 3
     #   start_period: 120s
-    command: ["nautobot-server", "runserver", "0.0.0.0:8080"]
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["nautobot-server migrate && nautobot-server createsuperuser --noinput && nautobot-server runserver 0.0.0.0:8080"]
 
   postgres:
     image: postgres:13-alpine

@@ -70,15 +70,21 @@ Static interface configuration example.
 ```bash
 python scripts/3_config_arista.py
 ```
-Arista-specific configuration example.
+Arista-specific configuration with static inventory (access1 and access2).
 
-### 4. Dynamic Configuration with Nautobot
+### 4. Jinja2 Template Configuration
+```bash
+python scripts/4_config_arista_template.py
+```
+Demonstrates Jinja2 template rendering with static inventory. Configures hostname, Loopback0, and interfaces using templates.
+
+### 5. Transition to Nautobot with Templates
 ```bash
 export NB_TOKEN=YOUR_API_TOKEN
 export NB_URL=http://localhost:8081  # Optional, defaults to http://localhost:8081
-python scripts/4_config_arista_template.py
+python scripts/5_config_arista_template_nautobot.py
 ```
-Uses Nautobot API to fetch device inventory and Jinja2 templates.
+Bridges the gap between static inventory and Nautobot. Fetches devices from Nautobot API and renders Jinja2 templates with dynamic data.
 
 **Getting an API Token:**
 1. Log into Nautobot: http://localhost:8080
@@ -86,16 +92,16 @@ Uses Nautobot API to fetch device inventory and Jinja2 templates.
 3. Click "Add API Token"
 4. Copy the token and export it as `NB_TOKEN`
 
-### 5. Access Port Configuration
+### 6. Dynamic Loopback Configuration
 ```bash
 export NB_TOKEN=YOUR_API_TOKEN
-python scripts/5_dynamic_config_access_ports_on_access1_and_access2.py
+python scripts/6_dynamic_config_access_ports_on_access1_and_access2.py
 ```
-Dynamic configuration of access ports using Nautobot inventory.
+Dynamic configuration of access ports using Nautobot inventory with advanced IP assignment logic.
 
-### 6. Transform to Nautobot Job
+### 7. Transform to Nautobot Job
 ```bash
-python scripts/6_transform_to_nautobot_job.py
+python scripts/7_transform_to_nautobot_job.py
 ```
 Example showing how to convert a standalone script into a Nautobot Job.
 
@@ -174,10 +180,28 @@ Check device credentials in the containerlab configuration:
 ## Next Steps
 
 After running these demo scripts, you can:
-1. Convert them to Nautobot Jobs (see script 6)
+1. Convert them to Nautobot Jobs (see script 7)
 2. Copy job templates to `jobs/jobs/` directory
 3. Restart Nautobot to load new jobs
 4. Run jobs from Nautobot UI
+5. **Implement JobHooks for automated triggers** - The next evolution!
 
-See the main README.md for more information on custom job development.
+### Progression: Scripts → Jobs → JobHooks
+
+This repository demonstrates the complete automation journey:
+
+```
+📝 Scripts (1-6)          →  📦 Nautobot Jobs (7)      →  🎣 JobHooks (interface_hook.py)
+├─ Run manually            ├─ Trigger from UI            ├─ Automatic triggers
+├─ Static/External data    ├─ Interactive inputs         ├─ React to Nautobot changes
+├─ Local development       ├─ Access Nautobot data       ├─ Real-time device sync
+└─ Testing concepts        └─ Scheduled execution        └─ Event-driven automation
+```
+
+**JobHooks Example:**
+The repository includes an **Interface Configuration Hook** (`jobs/jobs/interface_hook.py`) that automatically configures network devices when interfaces are created or updated in Nautobot. This represents the ultimate automation level - zero manual intervention!
+
+See:
+- [Interface Hook Documentation](../jobs/jobs/INTERFACE_HOOK.md)
+- Main [README.md](../README.md) - JobHooks section
 

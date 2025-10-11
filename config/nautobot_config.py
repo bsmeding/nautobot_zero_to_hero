@@ -500,11 +500,12 @@ NAPALM_ARGS = {
 
 # Enable installed plugins. Add the name of each plugin to the list.
 #
+
 PLUGINS = [
     "nautobot_design_builder",
     "nautobot_device_onboarding",
     "nautobot_golden_config",
-    "nautobot_ssot"
+    "nautobot_ssot",
 ]
 
 # Plugins configuration settings. These settings are used by various plugins that the user may have installed.

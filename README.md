@@ -416,6 +416,64 @@ The Job template equivalent is provided in `scripts/6_transform_to_nautobot_job.
    docker compose restart nautobot
    ```
 
+### JobHooks - Automated Event Triggers
+
+JobHooks automatically trigger when objects are created, updated, or deleted in Nautobot. Perfect for real-time device configuration synchronization.
+
+#### Interface Configuration Hook
+
+The repository includes an **Interface Configuration Hook** that automatically configures network devices when interfaces are created or updated in Nautobot:
+
+**Features:**
+- Automatically pushes interface config to devices when created/updated in Nautobot
+- Supports Arista EOS devices via pyeapi
+- Syncs: description, enabled/disabled state, MTU
+- Dry-run mode for testing
+- Only processes physical interfaces (skips virtual/management)
+
+**Usage Example:**
+1. Create/update an interface in Nautobot UI (e.g., `Ethernet4` on `access1`)
+2. Hook automatically detects the change
+3. Connects to the device and pushes configuration:
+   ```
+   interface Ethernet4
+     description Server connection
+     no shutdown
+   ```
+4. Saves configuration on device
+
+**Enable the Hook:**
+1. Navigate to **Jobs** → **Job Hooks** in Nautobot UI
+2. Find **"Interface Configuration Hook"**
+3. Enable it and configure trigger events (Create, Update)
+
+**Documentation:** See [jobs/jobs/INTERFACE_HOOK.md](jobs/jobs/INTERFACE_HOOK.md) for detailed usage and troubleshooting.
+
+**Creating Your Own JobHooks:**
+
+```python
+# jobs/jobs/my_hook.py
+from nautobot.apps.jobs import register_jobs
+from nautobot.extras.jobs import JobHookReceiver
+from nautobot.dcim.models import Device
+
+class MyDeviceHook(JobHookReceiver):
+    class Meta:
+        name = "My Device Hook"
+        description = "Run on Device create/update/delete"
+        object_type = Device
+    
+    def run(self, commit, **kwargs):
+        action = kwargs.get("action")  # "created", "updated", "deleted"
+        object_pk = kwargs.get("object_pk")
+        
+        if action == "created":
+            self.log_success(f"Device created: {object_pk}")
+            # Your automation logic here
+
+register_jobs(MyDeviceHook)
+```
+
 ### Adding Jinja2 Templates
 
 1. **Create template file** in `templates/`:

@@ -11,4 +11,5 @@ from . import device_status_monitor
 from . import network_discovery
 from . import device_sync_napalm
 from . import device_hook
+from . import interface_hook
 
