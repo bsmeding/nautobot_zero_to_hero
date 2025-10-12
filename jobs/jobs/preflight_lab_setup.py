@@ -575,7 +575,7 @@ class PreflightLabSetup(Job):
         
         # Virtual machines (matching Design Builder YAML)
         virtual_machines_data = [
-            {'name': 'ztp', 'role': 'Server', 'platform': 'Alpine Linux'},
+            {'name': 'workstation1', 'role': 'Server', 'platform': 'Alpine Linux'},
             {'name': 'management', 'role': 'Management', 'platform': 'Alpine Linux'}
         ]
         
@@ -638,7 +638,7 @@ class PreflightLabSetup(Job):
         
         # Create virtual machines with IP addresses
         vm_ip_configs = {
-            'ztp': '172.20.20.15/24',
+            'workstation1': '172.20.20.15/24',
             'management': '172.20.20.16/24'
         }
         
@@ -731,7 +731,7 @@ class PreflightLabSetup(Job):
                 'interfaces': [
                     {'name': 'Management0', 'description': 'Management interface'},
                     {'name': 'Ethernet1', 'description': 'Data interface - connected to dist1'},
-                    {'name': 'Ethernet2', 'description': 'Data interface - available for connections'},
+                    {'name': 'Ethernet2', 'description': 'Data interface - connected to workstation1'},
                     {'name': 'Ethernet3', 'description': 'Data interface - available for connections'}
                 ]
             },
@@ -750,7 +750,8 @@ class PreflightLabSetup(Job):
                     {'name': 'mgmt0', 'description': 'Management interface'},
                     {'name': 'ethernet-1/1', 'description': 'Data interface - connected to access1'},
                     {'name': 'ethernet-1/2', 'description': 'Data interface - connected to access2'},
-                    {'name': 'ethernet-1/3', 'description': 'Data interface - connected to rtr1'}
+                    {'name': 'ethernet-1/3', 'description': 'Data interface - connected to rtr1'},
+                    {'name': 'ethernet-1/4', 'description': 'Data interface - available for connections'}
                 ]
             },
             'rtr1': {
@@ -758,13 +759,22 @@ class PreflightLabSetup(Job):
                 'interfaces': [
                     {'name': 'mgmt0', 'description': 'Management interface'},
                     {'name': 'ethernet-1/1', 'description': 'Data interface - connected to dist1'},
-                    {'name': 'ethernet-1/2', 'description': 'Data interface - connected to ztp'},
-                    {'name': 'ethernet-1/3', 'description': 'Data interface - connected to mgmt'}
+                    {'name': 'ethernet-1/2', 'description': 'Data interface - connected to mgmt'},
+                    {'name': 'ethernet-1/3', 'description': 'Data interface - available for connections'}
                 ]
             }
         }
         
-        # VM interfaces are not created to match Design Builder YAML approach
+        # VM interface configurations
+        vm_interface_configs = {
+            'workstation1': {
+                'mgmt_ip': '172.20.20.15/24',
+                'interfaces': [
+                    {'name': 'eth0', 'description': 'Management interface'},
+                    {'name': 'eth1', 'description': 'Data interface - connected to access1'}
+                ]
+            }
+        }
         
         for device_name, config in device_interface_configs.items():
             try:
@@ -823,7 +833,7 @@ class PreflightLabSetup(Job):
                 self.logger.warning(f"Device {device_name} not found, skipping interface/IP creation")
 
         # VM interfaces are created above in the _create_devices method for both VMs
-        self.logger.info("VM interfaces created for ztp and management VMs")
+        self.logger.info("VM interfaces created for workstation1 and management VMs")
 
     def _create_cable_connections(self, site, status):
         """Create cable connections between devices according to lab topology."""
@@ -840,18 +850,20 @@ class PreflightLabSetup(Job):
             {'from_device': 'access1', 'from_interface': 'Ethernet1', 'to_device': 'dist1', 'to_interface': 'ethernet-1/1'},
             {'from_device': 'access2', 'from_interface': 'Ethernet1', 'to_device': 'dist1', 'to_interface': 'ethernet-1/2'},
             
+            # Access switch to Workstation
+            {'from_device': 'access1', 'from_interface': 'Ethernet2', 'to_device': 'workstation1', 'to_interface': 'eth1'},
+            
             # Distribution switch to Router
             {'from_device': 'dist1', 'from_interface': 'ethernet-1/3', 'to_device': 'rtr1', 'to_interface': 'ethernet-1/1'},
             
-            # Router to VMs (handled by Preflight Job due to Design Builder VMInterface compatibility issues)
-            {'from_device': 'rtr1', 'from_interface': 'ethernet-1/2', 'to_device': 'ztp', 'to_interface': 'eth1'},
-            {'from_device': 'rtr1', 'from_interface': 'ethernet-1/3', 'to_device': 'management', 'to_interface': 'eth1'},
+            # Router to Management VM (handled by Preflight Job due to Design Builder VMInterface compatibility issues)
+            {'from_device': 'rtr1', 'from_interface': 'ethernet-1/2', 'to_device': 'management', 'to_interface': 'eth1'},
         ]
         
         for connection in cable_connections:
             try:
                 # Get the source device and interface
-                if connection['from_device'] in ['ztp', 'management']:
+                if connection['from_device'] in ['workstation1', 'management']:
                     # VM interface
                     from_device = VirtualMachine.objects.get(name=connection['from_device'])
                     from_interface = VMInterface.objects.get(virtual_machine=from_device, name=connection['from_interface'])
@@ -861,7 +873,7 @@ class PreflightLabSetup(Job):
                     from_interface = Interface.objects.get(device=from_device, name=connection['from_interface'])
                 
                 # Get the destination device and interface
-                if connection['to_device'] in ['ztp', 'management']:
+                if connection['to_device'] in ['workstation1', 'management']:
                     # VM interface
                     to_device = VirtualMachine.objects.get(name=connection['to_device'])
                     to_interface = VMInterface.objects.get(virtual_machine=to_device, name=connection['to_interface'])

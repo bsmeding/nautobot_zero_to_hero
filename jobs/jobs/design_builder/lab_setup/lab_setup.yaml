@@ -365,8 +365,8 @@ ip_addresses:
   # VM IP addresses with DNS names
   - "!create_or_update:address": "172.20.20.15/24"
     status__name: "Active"
-    dns_name: "ztp.lab"
-    description: "Primary IP for ztp VM"
+    dns_name: "workstation1.lab"
+    description: "Primary IP for workstation1 VM"
   - "!create_or_update:address": "172.20.20.16/24"
     status__name: "Active"
     dns_name: "mgmt.lab"
@@ -374,7 +374,7 @@ ip_addresses:
 
 # Virtual Machines
 virtual_machines:
-  - "!create_or_update:name": "ztp"
+  - "!create_or_update:name": "workstation1"
     cluster__name: "Lab-Cluster"
     role__name: "Server"
     platform__name: "Alpine Linux"
@@ -386,53 +386,18 @@ virtual_machines:
     status__name: "Active"
 
 
-# # Cable Types
-# cable_types:
-#   - "!create_or_update:name": "Cat6"
-#     description: "Cat6 Ethernet cable"
-
-# # Cable Connections
-# cables:
-#   # Access switches to Distribution switch
-#   - "!create_or_update:termination_a__device__name": "access1"
-#     "!create_or_update:termination_a__name": "Ethernet1"
-#     "!create_or_update:termination_b__device__name": "dist1"
-#     "!create_or_update:termination_b__name": "ethernet-1/1"
-#     type__name: "Cat6"
-#     status__name: "Active"
-#     label: "access1-Ethernet1 to dist1-ethernet-1/1"
-#   - "!create_or_update:termination_a__device__name": "access2"
-#     "!create_or_update:termination_a__name": "Ethernet1"
-#     "!create_or_update:termination_b__device__name": "dist1"
-#     "!create_or_update:termination_b__name": "ethernet-1/2"
-#     type__name: "Cat6"
-#     status__name: "Active"
-#     label: "access2-Ethernet1 to dist1-ethernet-1/2"
-  
-#   # Distribution switch to Router
-#   - "!create_or_update:termination_a__device__name": "dist1"
-#     "!create_or_update:termination_a__name": "ethernet-1/3"
-#     "!create_or_update:termination_b__device__name": "rtr1"
-#     "!create_or_update:termination_b__name": "ethernet-1/1"
-#     type__name: "Cat6"
-#     status__name: "Active"
-#     label: "dist1-ethernet-1/3 to rtr1-ethernet-1/1"
-  
-#   # Router to VMs
-#   - "!create_or_update:termination_a__device__name": "rtr1"
-#     "!create_or_update:termination_a__name": "ethernet-1/2"
-#     "!create_or_update:termination_b__virtual_machine__name": "ztp"
-#     "!create_or_update:termination_b__name": "eth1"
-#     type__name: "Cat6"
-#     status__name: "Active"
-#     label: "rtr1-ethernet-1/2 to ztp-eth1"
-#   - "!create_or_update:termination_a__device__name": "rtr1"
-#     "!create_or_update:termination_a__name": "ethernet-1/3"
-#     "!create_or_update:termination_b__virtual_machine__name": "management"
-#     "!create_or_update:termination_b__name": "eth1"
-#     type__name: "Cat6"
-#     status__name: "Active"
-#     label: "rtr1-ethernet-1/3 to management-eth1"
+# Cable connections are handled by Preflight Job
+# Design Builder has issues with VM interface cables, so we create them programmatically
+# The following connections are created by the Preflight Job:
+#
+# Physical device connections:
+#   - access1:Ethernet1 <-> dist1:ethernet-1/1
+#   - access2:Ethernet1 <-> dist1:ethernet-1/2
+#   - dist1:ethernet-1/3 <-> rtr1:ethernet-1/1
+#
+# VM connections (created by Preflight Job):
+#   - access1:Ethernet2 <-> workstation1:eth1
+#   - rtr1:ethernet-1/2 <-> management:eth1
 
 # Config Contexts - Common and Platform-Specific Configurations
 config_contexts:

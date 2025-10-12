@@ -52,6 +52,7 @@ topology:
       mgmt-ipv4: 172.20.20.13
       exec:
         - /bin/bash -c "mkdir -p /root/.local/share/powershell && echo 'Set-PSReadLineOption -PredictionSource None' > /root/.local/share/powershell/Microsoft.PowerShell_profile.ps1"
+        - /bin/bash -c "sr_cli 'tools system configuration history state disable' || true"
 
     rtr1:
       kind: nokia_srlinux
@@ -68,20 +69,20 @@ topology:
       mgmt-ipv4: 172.20.20.14
       exec:
         - /bin/bash -c "mkdir -p /root/.local/share/powershell && echo 'Set-PSReadLineOption -PredictionSource None' > /root/.local/share/powershell/Microsoft.PowerShell_profile.ps1"
+        - /bin/bash -c "sr_cli 'tools system configuration history state disable' || true"
 
-    ztp:
+    workstation1:
       kind: linux
-      image: alpine
+      image: alpine:latest
       ports:
         - 50009:22
       env:
         NAPALM_USERNAME: root
         NAPALM_PASSWORD: root
+      binds:
+        - bootstrap/workstation1.cfg:/tmp/bootstrap.sh
       exec:
-        - /bin/sh -lc 'apk update'
-        - /bin/sh -lc 'apk add --no-cache openssh iproute2 ethtool curl'
-        - /bin/sh -lc 'ssh-keygen -A'
-        - /usr/sbin/sshd -D
+        - /bin/sh /tmp/bootstrap.sh
 
     mgmt:
       kind: linux
@@ -91,18 +92,17 @@ topology:
       env:
         NAPALM_USERNAME: root
         NAPALM_PASSWORD: root
+      binds:
+        - bootstrap/mgmt.cfg:/tmp/bootstrap.sh
       exec:
-        - /bin/sh -lc 'apk update'
-        - /bin/sh -lc 'apk add --no-cache openssh iproute2 ethtool curl'
-        - /bin/sh -lc 'ssh-keygen -A'
-        - /usr/sbin/sshd -D
+        - /bin/sh /tmp/bootstrap.sh
 
   links:
     - endpoints: [ access1:eth1, dist1:ethernet-1/1 ]
     - endpoints: [ access2:eth1, dist1:ethernet-1/2 ]
+    - endpoints: [ access1:eth2, workstation1:eth1 ]
     - endpoints: [ dist1:ethernet-1/3, rtr1:ethernet-1/1 ]
-    - endpoints: [ rtr1:ethernet-1/2, ztp:eth1 ]
-    - endpoints: [ rtr1:ethernet-1/3, mgmt:eth1 ]
+    - endpoints: [ rtr1:ethernet-1/2, mgmt:eth1 ]
 
 mgmt:
   network: clab
