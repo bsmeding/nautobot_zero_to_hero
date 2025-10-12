@@ -412,15 +412,14 @@ class PreflightLabSetup(Job):
                 location_prefix = f"{parent_parts[0]}.{parent_parts[1]}.20.0/24"
                 
                 try:
-                    # Check if location prefix already exists
-                    existing_prefix = Prefix.objects.get(prefix=location_prefix, location=site)
+                    # Check if location prefix already exists (without location assignment)
+                    existing_prefix = Prefix.objects.get(prefix=location_prefix)
                     self.logger.info(f"Using existing location prefix: {location_prefix} for {site.name}")
                 except Prefix.DoesNotExist:
-                    # Create new location-specific prefix
+                    # Create new location-specific prefix (without location assignment due to Site location type constraint)
                     location_prefix_obj = Prefix.objects.create(
                         prefix=location_prefix,
                         parent=parent_prefix,
-                        location=site,
                         status=status,
                         description=f"{site.name} network under {parent_prefix.prefix}"
                     )
