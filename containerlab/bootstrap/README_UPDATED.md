@@ -29,7 +29,7 @@ The bootstrap files are:
 - ✅ Management interface (eth0) with static IP
 - ✅ SSH server enabled
 - ✅ Network testing tools (ping, curl, tcpdump, iperf3, mtr)
-- ✅ Root password set (root:root)
+- ✅ Root password set (root:admin)
 - ✅ Data interface (eth1) ready for configuration exercises
 
 ### Management Server (172.20.20.16)
@@ -38,7 +38,7 @@ The bootstrap files are:
 - ✅ SSH server enabled
 - ✅ Network tools (tcpdump, nmap, iperf3)
 - ✅ Directory structure for automation scripts
-- ✅ Root password set (root:root)
+- ✅ Root password set (root:admin)
 
 ## Testing Deployment
 

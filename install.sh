@@ -228,7 +228,7 @@ declare -A LAB_DEVICES=(
     ["172.20.20.12"]="access2.lab access2"
     ["172.20.20.13"]="dist1.lab dist1"
     ["172.20.20.14"]="rtr1.lab rtr1"
-    ["172.20.20.15"]="ztp.lab ztp"
+    ["172.20.20.15"]="workstation1.lab workstation1"
     ["172.20.20.16"]="mgmt.lab mgmt"
 )
 
@@ -243,6 +243,87 @@ for ip in "${!LAB_DEVICES[@]}"; do
 done
 
 echo "[INFO] /etc/hosts updated successfully!"
+
+# Update SSH config for easier access
+echo ""
+echo "[INFO] Updating SSH config for lab devices..."
+SSH_CONFIG="$HOME/.ssh/config"
+SSH_CONFIG_BAK="${SSH_CONFIG}.backup.$(date +%Y%m%d_%H%M%S)"
+
+# Create .ssh directory if it doesn't exist
+mkdir -p "$HOME/.ssh"
+chmod 700 "$HOME/.ssh"
+
+# Backup existing SSH config if it exists
+if [ -f "$SSH_CONFIG" ]; then
+    cp "$SSH_CONFIG" "$SSH_CONFIG_BAK"
+    echo "  Backup saved to: $SSH_CONFIG_BAK"
+fi
+
+# Remove old lab entries if they exist
+if [ -f "$SSH_CONFIG" ]; then
+    sed -i.tmp '/# Nautobot Lab SSH Config - START/,/# Nautobot Lab SSH Config - END/d' "$SSH_CONFIG"
+    rm -f "${SSH_CONFIG}.tmp"
+fi
+
+# Add new SSH config entries
+cat >> "$SSH_CONFIG" << 'SSHEOF'
+
+# Nautobot Lab SSH Config - START
+# Network devices (Arista/Nokia)
+Host access1 access1.lab
+    HostName 172.20.20.11
+    User admin
+    Port 22
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host access2 access2.lab
+    HostName 172.20.20.12
+    User admin
+    Port 22
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host dist1 dist1.lab
+    HostName 172.20.20.13
+    User admin
+    Port 22
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host rtr1 rtr1.lab
+    HostName 172.20.20.14
+    User admin
+    Port 22
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+# Linux containers (Alpine)
+Host workstation1 workstation1.lab
+    HostName 172.20.20.15
+    User root
+    Port 22
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+Host mgmt mgmt.lab
+    HostName 172.20.20.16
+    User root
+    Port 22
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+# Nautobot Lab SSH Config - END
+SSHEOF
+
+chmod 600 "$SSH_CONFIG"
+echo "  ✅ SSH config updated successfully!"
+echo ""
+echo "You can now SSH to devices using just the hostname:"
+echo "  ssh access1    # No need for 'admin@' prefix"
+echo "  ssh workstation1"
+echo "  ssh mgmt"
+echo ""
 
 # Optional: Install desktop environment
 if [ "$INSTALL_DESKTOP" = "true" ]; then

@@ -15,6 +15,7 @@ try:
 except ImportError:
     PYEAPI_AVAILABLE = False
 
+name = "Lifecycle hooks"
 
 class InterfaceJobHookReceiver(JobHookReceiver):
     """JobHook that syncs Interface changes from Nautobot to network devices."""

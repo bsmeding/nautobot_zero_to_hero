@@ -2,11 +2,12 @@ from nautobot.apps.jobs import register_jobs
 from nautobot.extras.jobs import JobHookReceiver
 from nautobot.dcim.models import Device
 
+name = "Lifecycle hooks"
 
 class DeviceJobHookReceiver(JobHookReceiver):
     class Meta:
-        name = "Device Job Hook"
-        description = "Run on Device create/update/delete to trigger follow-up actions"
+        name = "Device Configuration Hook"
+        description = "Automatically configure device interfaces when created/updated/deleted in Nautobot"
         object_type = Device  # Target model for this Job Hook Receiver
 
     def run(self, commit, **kwargs):

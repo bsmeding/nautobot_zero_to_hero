@@ -78,7 +78,7 @@ topology:
         - 50009:22
       env:
         NAPALM_USERNAME: root
-        NAPALM_PASSWORD: root
+        NAPALM_PASSWORD: admin
       binds:
         - bootstrap/workstation1.cfg:/tmp/bootstrap.sh
       exec:
@@ -91,7 +91,7 @@ topology:
         - 50010:22
       env:
         NAPALM_USERNAME: root
-        NAPALM_PASSWORD: root
+        NAPALM_PASSWORD: admin
       binds:
         - bootstrap/mgmt.cfg:/tmp/bootstrap.sh
       exec:

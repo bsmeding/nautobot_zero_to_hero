@@ -181,7 +181,7 @@ sudo bash update_hosts.sh
 - `access2.lab` / `access2` → 172.20.20.12
 - `dist1.lab` / `dist1` → 172.20.20.13
 - `rtr1.lab` / `rtr1` → 172.20.20.14
-- `ztp.lab` / `ztp` → 172.20.20.15
+- `workstation1.lab` / `workstation1` → 172.20.20.15
 - `mgmt.lab` / `mgmt` → 172.20.20.16
 
 **Benefits:**

@@ -15,8 +15,8 @@ This lab is configured to ensure everyone gets the same devices and IP addresses
 | **access2** | `172.20.20.12` | 50003:22, 50004:830 | Arista EOS Access Switch 2 |
 | **dist1** | `172.20.20.13` | 50005:22, 50006:830 | Nokia SR Linux Distribution Switch |
 | **rtr1** | `172.20.20.14` | 50007:22, 50008:830 | Nokia SR Linux Router |
-| **mgmt** | `172.20.20.5` | 50010:22 | Management Host |
-| **ztp** | `172.20.20.6` | 50009:22 | ZTP Server |
+| **mgmt** | `172.20.20.16` | 50010:22 | Management Host |
+| **workstation1** | `172.20.20.15` | 50009:22 | Network Testing Workstation |
 
 ## 🚀 **How to Deploy**
 
@@ -67,11 +67,11 @@ ssh admin@172.20.20.14  # rtr1
 
 ### **Linux Containers:**
 ```bash
-ssh root@172.20.20.5    # mgmt
-ssh root@172.20.20.6    # ztp
+ssh root@172.20.20.16   # mgmt
+ssh root@172.20.20.15   # workstation1
 ```
 
-**Credentials:** `admin/admin` for network devices, `root/root` for Linux containers
+**Credentials:** `admin/admin` for network devices, `root/admin` for Linux containers
 
 ## 🔄 **Reset Lab**
 

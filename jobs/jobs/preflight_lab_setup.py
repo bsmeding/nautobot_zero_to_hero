@@ -84,6 +84,14 @@ class PreflightLabSetup(Job):
                         location_type.save()
                         self.logger.info(f"Updated location type: {config['name']} with parent: {config['parent']}")
 
+            # Add virtualmachine content type to Site location type
+            from django.contrib.contenttypes.models import ContentType
+            site_location_type = location_types['Site']
+            vm_content_type = ContentType.objects.get(app_label='virtualization', model='virtualmachine')
+            if vm_content_type not in site_location_type.content_types.all():
+                site_location_type.content_types.add(vm_content_type)
+                self.logger.info("Added virtualmachine content type to Site location type")
+
             # Create region first
             region_name = "NetDevOps"
             self.logger.info(f"Creating region: {region_name}")
@@ -646,15 +654,21 @@ class PreflightLabSetup(Job):
             try:
                 vm = VirtualMachine.objects.get(name=vm_data['name'], cluster=cluster)
                 self.logger.info(f"Using existing virtual machine: {vm_data['name']}")
+                # Update location if not set
+                if not vm.location:
+                    vm.location = site
+                    vm.save()
+                    self.logger.info(f"Updated location for VM {vm_data['name']} to {site.name}")
             except VirtualMachine.DoesNotExist:
                 vm = VirtualMachine.objects.create(
                     name=vm_data['name'],
                     cluster=cluster,
+                    location=site,
                     role=roles[vm_data['role']],
                     platform=platforms[vm_data['platform']],
                     status=status
                 )
-                self.logger.info(f"Created virtual machine: {vm.name}")
+                self.logger.info(f"Created virtual machine: {vm.name} at location: {site.name}")
             
             # Create VM interfaces and IP addresses (Design Builder has compatibility issues with VM interfaces)
             from nautobot.virtualization.models import VMInterface
