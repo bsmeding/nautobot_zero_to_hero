@@ -138,16 +138,20 @@ roles:
         "!get:model": "device"
   - "!create_or_update:name": "Server"
     color: "007bff"
-    description: "Server devices"
+    description: "Server devices and virtual machines"
     content_types:
       - "!get:app_label": "dcim"
         "!get:model": "device"
+      - "!get:app_label": "virtualization"
+        "!get:model": "virtualmachine"
   - "!create_or_update:name": "Management"
     content_types:
       - "!get:app_label": "dcim"
         "!get:model": "device"
+      - "!get:app_label": "virtualization"
+        "!get:model": "virtualmachine"
     color: "6f42c1"
-    description: "Management devices"
+    description: "Management devices and virtual machines"
   - "!create_or_update:name": "ZTP Server"
     content_types:
       - "!get:app_label": "virtualization"
@@ -372,9 +376,13 @@ ip_addresses:
 virtual_machines:
   - "!create_or_update:name": "ztp"
     cluster__name: "Lab-Cluster"
+    role__name: "Server"
+    platform__name: "Alpine Linux"
     status__name: "Active"
   - "!create_or_update:name": "management"
     cluster__name: "Lab-Cluster"
+    role__name: "Management"
+    platform__name: "Alpine Linux"
     status__name: "Active"
 
 
