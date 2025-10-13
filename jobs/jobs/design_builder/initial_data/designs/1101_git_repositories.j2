@@ -11,8 +11,36 @@ git_repositories:
   #     - "extras.job"
         
   # Import Device Types
-  - "!create_or_update:name": "import device-types"
-    remote_url: "https://github.com/bsmeding/nautobot_devicetype_library.git"
+#  - "!create_or_update:name": "import device-types"
+#    remote_url: "https://github.com/bsmeding/nautobot_devicetype_library.git"
+#    branch: "main"
+#    provided_contents:
+#      - "extras.job"
+
+  # Demo Jobs Repository
+  - "!create_or_update:name": "NZTH Demo Jobs"
+    remote_url: "https://github.com/bsmeding/nzth_demo_jobs"
     branch: "main"
     provided_contents:
       - "extras.job"
+
+  # Golden Config Jinja Templates
+  - "!create_or_update:name": "NZTH Demo Jinja Templates"
+    remote_url: "https://github.com/bsmeding/nzth_demo_jinja_templates"
+    branch: "main"
+    provided_contents:
+      - "nautobot_golden_config.jinjatemplate"
+
+  # Golden Config Intended Configs
+  - "!create_or_update:name": "NZTH Demo Intended Config"
+    remote_url: "https://github.com/bsmeding/nzth_demo_intended_config"
+    branch: "main"
+    provided_contents:
+      - "nautobot_golden_config.intendedconfigs"
+
+  # Golden Config Backups
+  - "!create_or_update:name": "NZTH Demo Backups"
+    remote_url: "https://github.com/bsmeding/nzth_demo_backups"
+    branch: "main"
+    provided_contents:
+      - "nautobot_golden_config.backupconfigs"

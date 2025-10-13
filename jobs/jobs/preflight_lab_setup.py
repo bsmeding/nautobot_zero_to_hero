@@ -563,7 +563,7 @@ class PreflightLabSetup(Job):
 
         # Get or create device roles
         roles = {}
-        for role_name in ['Access Switch', 'Distribution Switch', 'Router', 'Server', 'Management']:
+        for role_name in ['Access Switch', 'Distribution Switch', 'Router', 'Server', 'Management', 'Workstation']:
             role, created = Role.objects.get_or_create(
                 name=role_name,
                 defaults={'description': f'{role_name} role'}
@@ -583,7 +583,7 @@ class PreflightLabSetup(Job):
         
         # Virtual machines (matching Design Builder YAML)
         virtual_machines_data = [
-            {'name': 'workstation1', 'role': 'Server', 'platform': 'Alpine Linux'},
+            {'name': 'workstation1', 'role': 'Workstation', 'platform': 'Alpine Linux'},
             {'name': 'management', 'role': 'Management', 'platform': 'Alpine Linux'}
         ]
         
@@ -654,21 +654,17 @@ class PreflightLabSetup(Job):
             try:
                 vm = VirtualMachine.objects.get(name=vm_data['name'], cluster=cluster)
                 self.logger.info(f"Using existing virtual machine: {vm_data['name']}")
-                # Update location if not set
-                if not vm.location:
-                    vm.location = site
-                    vm.save()
-                    self.logger.info(f"Updated location for VM {vm_data['name']} to {site.name}")
+                # Note: VirtualMachine location property has no setter, so we can't update it directly
             except VirtualMachine.DoesNotExist:
                 vm = VirtualMachine.objects.create(
                     name=vm_data['name'],
                     cluster=cluster,
-                    location=site,
+                    # Note: VirtualMachine location cannot be set directly (no setter)
                     role=roles[vm_data['role']],
                     platform=platforms[vm_data['platform']],
                     status=status
                 )
-                self.logger.info(f"Created virtual machine: {vm.name} at location: {site.name}")
+                self.logger.info(f"Created virtual machine: {vm.name}")
             
             # Create VM interfaces and IP addresses (Design Builder has compatibility issues with VM interfaces)
             from nautobot.virtualization.models import VMInterface
