@@ -313,9 +313,9 @@ devices:
   - "!create_or_update:name": "dist1"
     location__name: "netdevops.it_lab"
     role__name: "Distribution Switch"
-    device_type__manufacturer__name: "Nokia"
-    device_type__model: "SR Linux"
-    platform__name: "Nokia SR Linux"
+    device_type__manufacturer__name: "Arista"
+    device_type__model: "cEOS"
+    platform__name: "Arista EOS"
     rack__name: "Rack-01"
     position: 15
     face: "front"
@@ -325,9 +325,9 @@ devices:
   - "!create_or_update:name": "rtr1"
     location__name: "netdevops.it_lab"
     role__name: "Router"
-    device_type__manufacturer__name: "Nokia"
-    device_type__model: "SR Linux"
-    platform__name: "Nokia SR Linux"
+    device_type__manufacturer__name: "Arista"
+    device_type__model: "cEOS"
+    platform__name: "Arista EOS"
     rack__name: "Rack-01"
     position: 20
     face: "front"
@@ -399,13 +399,13 @@ virtual_machines:
 # The following connections are created by the Preflight Job:
 #
 # Physical device connections:
-#   - access1:Ethernet1 <-> dist1:ethernet-1/1
-#   - access2:Ethernet1 <-> dist1:ethernet-1/2
-#   - dist1:ethernet-1/3 <-> rtr1:ethernet-1/1
+#   - access1:Ethernet1 <-> dist1:Ethernet1
+#   - access2:Ethernet1 <-> dist1:Ethernet2
+#   - dist1:Ethernet3 <-> rtr1:Ethernet1
 #
 # VM connections (created by Preflight Job):
 #   - access1:Ethernet2 <-> workstation1:eth1
-#   - rtr1:ethernet-1/2 <-> management:eth1
+#   - rtr1:Ethernet2 <-> management:eth1
 
 # Config Contexts - Common and Platform-Specific Configurations
 config_contexts:

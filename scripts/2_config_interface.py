@@ -8,6 +8,37 @@ Sets IP 172.20.20.11/24 and enables interface; commits to startup-config.
 import pyeapi
 
 
+def configure_interface(node: pyeapi.client.Node, interface_name: str, ip_address: str, 
+    enabled: bool = True, save_config: bool = True) -> None:
+    """
+
+    Input:      node: pyeapi.client.Node, interface_name: str, ip_address: str,
+                enabled: bool = True, save_config: bool = True
+    Output: None
+    Description: Configure an interface on an Arista device.
+    Example:
+    >>> configure_interface(node, "Management0", "172.20.20.11/24", True, True)
+    Configured Management0 with IP 172.20.20.11/24 on device
+    """
+
+    config_cmds = [
+        f"interface {interface_name}",
+        f"ip address {ip_address}",
+    ]
+    
+    if enabled:
+        config_cmds.append("no shutdown")
+    else:
+        config_cmds.append("shutdown")
+    
+    node.config(config_cmds)
+    
+    if save_config:
+        node.enable("write memory")
+    
+    print(f"Configured {interface_name} with IP {ip_address} on device")
+
+
 def main() -> None:
     # Create a connection and get the node
     connection = pyeapi.connect(
@@ -19,17 +50,14 @@ def main() -> None:
     )
     node = pyeapi.client.Node(connection)
     
-    # Use config() method for configuration commands (pyeapi handles config mode automatically)
-    config_cmds = [
-        "interface Management0",
-        "ip address 172.20.20.11/24",
-        "no shutdown",
-    ]
-    node.config(config_cmds)
-    
-    # Save configuration
-    node.enable("write memory")
-    print("Configured Management0 on access1")
+    # Use the reusable function to configure the interface
+    configure_interface(
+        node=node,
+        interface_name="Management0",
+        ip_address="172.20.20.11/24",
+        enabled=True,
+        save_config=True,
+    )
 
 
 if __name__ == "__main__":

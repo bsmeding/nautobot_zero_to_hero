@@ -283,13 +283,12 @@ class PreflightLabSetup(Job):
             secrets_groups[group_config['name']] = secrets_group
         
         # Associate secrets groups with devices based on platform
+        # All devices are now Arista cEOS
         device_secrets_mapping = {
-            # Arista devices
             'access1': 'Arista NAPALM Secrets Group',
             'access2': 'Arista NAPALM Secrets Group',
-            # Nokia devices
-            'dist1': 'Nokia NAPALM Secrets Group',
-            'rtr1': 'Nokia NAPALM Secrets Group'
+            'dist1': 'Arista NAPALM Secrets Group',
+            'rtr1': 'Arista NAPALM Secrets Group'
         }
         
         for device_name, secrets_group_name in device_secrets_mapping.items():
@@ -573,12 +572,12 @@ class PreflightLabSetup(Job):
                 self.logger.info(f"Created role: {role_name}")
 
         # Device definitions matching the Containerlab topology and Design Builder YAML
-        # Physical devices in racks
+        # Physical devices in racks - All Arista cEOS
         devices_data = [
             {'name': 'access1', 'role': 'Access Switch', 'platform': 'Arista EOS', 'device_type': 'Arista EOS', 'rack': 'Rack-02', 'position': 11, 'face': 'front'},
             {'name': 'access2', 'role': 'Access Switch', 'platform': 'Arista EOS', 'device_type': 'Arista EOS', 'rack': 'Rack-02', 'position': 12, 'face': 'front'},
-            {'name': 'dist1', 'role': 'Distribution Switch', 'platform': 'Nokia SR Linux', 'device_type': 'Nokia SR Linux', 'rack': 'Rack-01', 'position': 15, 'face': 'front'},
-            {'name': 'rtr1', 'role': 'Router', 'platform': 'Nokia SR Linux', 'device_type': 'Nokia SR Linux', 'rack': 'Rack-01', 'position': 20, 'face': 'front'}
+            {'name': 'dist1', 'role': 'Distribution Switch', 'platform': 'Arista EOS', 'device_type': 'Arista EOS', 'rack': 'Rack-01', 'position': 15, 'face': 'front'},
+            {'name': 'rtr1', 'role': 'Router', 'platform': 'Arista EOS', 'device_type': 'Arista EOS', 'rack': 'Rack-01', 'position': 20, 'face': 'front'}
         ]
         
         # Virtual machines (matching Design Builder YAML)
@@ -757,20 +756,20 @@ class PreflightLabSetup(Job):
             'dist1': {
                 'mgmt_ip': '172.20.20.13/24',
                 'interfaces': [
-                    {'name': 'mgmt0', 'description': 'Management interface'},
-                    {'name': 'ethernet-1/1', 'description': 'Data interface - connected to access1'},
-                    {'name': 'ethernet-1/2', 'description': 'Data interface - connected to access2'},
-                    {'name': 'ethernet-1/3', 'description': 'Data interface - connected to rtr1'},
-                    {'name': 'ethernet-1/4', 'description': 'Data interface - available for connections'}
+                    {'name': 'Management0', 'description': 'Management interface'},
+                    {'name': 'Ethernet1', 'description': 'Data interface - connected to access1'},
+                    {'name': 'Ethernet2', 'description': 'Data interface - connected to access2'},
+                    {'name': 'Ethernet3', 'description': 'Data interface - connected to rtr1'},
+                    {'name': 'Ethernet4', 'description': 'Data interface - available for connections'}
                 ]
             },
             'rtr1': {
                 'mgmt_ip': '172.20.20.14/24',
                 'interfaces': [
-                    {'name': 'mgmt0', 'description': 'Management interface'},
-                    {'name': 'ethernet-1/1', 'description': 'Data interface - connected to dist1'},
-                    {'name': 'ethernet-1/2', 'description': 'Data interface - connected to mgmt'},
-                    {'name': 'ethernet-1/3', 'description': 'Data interface - available for connections'}
+                    {'name': 'Management0', 'description': 'Management interface'},
+                    {'name': 'Ethernet1', 'description': 'Data interface - connected to dist1'},
+                    {'name': 'Ethernet2', 'description': 'Data interface - connected to mgmt'},
+                    {'name': 'Ethernet3', 'description': 'Data interface - available for connections'}
                 ]
             }
         }
@@ -854,20 +853,20 @@ class PreflightLabSetup(Job):
         # This matches the Design Builder YAML approach which also doesn't specify cable types
         self.logger.info("Creating cables without type (matching Design Builder approach)")
         
-        # Define cable connections based on lab topology
+        # Define cable connections based on lab topology (All Arista devices)
         cable_connections = [
             # Access switches to Distribution switch
-            {'from_device': 'access1', 'from_interface': 'Ethernet1', 'to_device': 'dist1', 'to_interface': 'ethernet-1/1'},
-            {'from_device': 'access2', 'from_interface': 'Ethernet1', 'to_device': 'dist1', 'to_interface': 'ethernet-1/2'},
+            {'from_device': 'access1', 'from_interface': 'Ethernet1', 'to_device': 'dist1', 'to_interface': 'Ethernet1'},
+            {'from_device': 'access2', 'from_interface': 'Ethernet1', 'to_device': 'dist1', 'to_interface': 'Ethernet2'},
             
             # Access switch to Workstation
             {'from_device': 'access1', 'from_interface': 'Ethernet2', 'to_device': 'workstation1', 'to_interface': 'eth1'},
             
             # Distribution switch to Router
-            {'from_device': 'dist1', 'from_interface': 'ethernet-1/3', 'to_device': 'rtr1', 'to_interface': 'ethernet-1/1'},
+            {'from_device': 'dist1', 'from_interface': 'Ethernet3', 'to_device': 'rtr1', 'to_interface': 'Ethernet1'},
             
             # Router to Management VM (handled by Preflight Job due to Design Builder VMInterface compatibility issues)
-            {'from_device': 'rtr1', 'from_interface': 'ethernet-1/2', 'to_device': 'management', 'to_interface': 'eth1'},
+            {'from_device': 'rtr1', 'from_interface': 'Ethernet2', 'to_device': 'management', 'to_interface': 'eth1'},
         ]
         
         for connection in cable_connections:

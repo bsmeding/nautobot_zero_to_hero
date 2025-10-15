@@ -38,38 +38,40 @@ topology:
       mgmt-ipv4: 172.20.20.12
 
     dist1:
-      kind: nokia_srlinux
-      image: ghcr.io/nokia/srlinux:23.10.1
+      kind: arista_ceos
+      image: ceos:4.34.2F
       ports:
         - 50005:22
-        - 50006:57400
+        - 50006:830
       env:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
         NAPALM_SECRET: admin
         PSReadLinePredictionSource: None
+        CEOS: 1
+        EOS_PLATFORM: ceoslab
+        container: docker
+        SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
       startup-config: bootstrap/dist1.cfg
       mgmt-ipv4: 172.20.20.13
-      exec:
-        - /bin/bash -c "mkdir -p /root/.local/share/powershell && echo 'Set-PSReadLineOption -PredictionSource None' > /root/.local/share/powershell/Microsoft.PowerShell_profile.ps1"
-        - /bin/bash -c "sr_cli 'tools system configuration history state disable' || true"
 
     rtr1:
-      kind: nokia_srlinux
-      image: ghcr.io/nokia/srlinux:23.10.1
+      kind: arista_ceos
+      image: ceos:4.34.2F
       ports:
         - 50007:22
-        - 50008:57400
+        - 50008:830
       env:
         NAPALM_USERNAME: admin
         NAPALM_PASSWORD: admin
         NAPALM_SECRET: admin
         PSReadLinePredictionSource: None
+        CEOS: 1
+        EOS_PLATFORM: ceoslab
+        container: docker
+        SKIP_ZEROTOUCH_BARRIER_IN_SYSDBINIT: 1
       startup-config: bootstrap/rtr1.cfg
       mgmt-ipv4: 172.20.20.14
-      exec:
-        - /bin/bash -c "mkdir -p /root/.local/share/powershell && echo 'Set-PSReadLineOption -PredictionSource None' > /root/.local/share/powershell/Microsoft.PowerShell_profile.ps1"
-        - /bin/bash -c "sr_cli 'tools system configuration history state disable' || true"
 
     workstation1:
       kind: linux
@@ -98,11 +100,11 @@ topology:
         - /bin/sh /tmp/bootstrap.sh
 
   links:
-    - endpoints: [ access1:eth1, dist1:ethernet-1/1 ]
-    - endpoints: [ access2:eth1, dist1:ethernet-1/2 ]
+    - endpoints: [ access1:eth1, dist1:eth1 ]
+    - endpoints: [ access2:eth1, dist1:eth2 ]
     - endpoints: [ access1:eth2, workstation1:eth1 ]
-    - endpoints: [ dist1:ethernet-1/3, rtr1:ethernet-1/1 ]
-    - endpoints: [ rtr1:ethernet-1/2, mgmt:eth1 ]
+    - endpoints: [ dist1:eth3, rtr1:eth1 ]
+    - endpoints: [ rtr1:eth2, mgmt:eth1 ]
 
 mgmt:
   network: clab
