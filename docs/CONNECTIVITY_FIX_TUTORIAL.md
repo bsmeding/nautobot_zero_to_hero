@@ -9,7 +9,7 @@ This tutorial demonstrates a real-world network troubleshooting scenario where a
 After initial containerlab deployment, connectivity tests show that:
 - **workstation1** (10.0.0.15) cannot communicate with **mgmt** (10.0.0.16)
 - Both devices are in the same subnet (10.0.0.0/24), so they should communicate at Layer 2
-- The issue is caused by **incorrect VLAN assignments** on the switches
+- The issue is caused by **shutdown interfaces** on the switches
 
 ## Step-by-Step Tutorial
 
@@ -31,16 +31,18 @@ Looking at the bootstrap configurations:
 **access1 (Ethernet2 - connected to workstation1):**
 ```
 interface Ethernet2
-   switchport access vlan 999    ← WRONG! Should be VLAN 10
+   shutdown    ← PROBLEM! Interface is disabled
+   description "Connected to workstation1 - DISABLED"
 ```
 
 **rtr1 (Ethernet2 - connected to mgmt):**
 ```
 interface Ethernet2
-   switchport access vlan 999    ← WRONG! Should be VLAN 10
+   shutdown    ← PROBLEM! Interface is disabled
+   description "Connected to mgmt server - DISABLED"
 ```
 
-**Root Cause**: Both Ethernet2 interfaces are in VLAN 999 instead of VLAN 10, preventing Layer 2 communication.
+**Root Cause**: Both Ethernet2 interfaces are administratively shutdown, preventing any communication.
 
 ### Step 3: Fix with Automation
 
@@ -54,9 +56,10 @@ python3 4_config_arista_template.py
 **What the script does:**
 1. Connects to access1 and rtr1 via eAPI
 2. Renders configuration from Jinja2 template
-3. Moves Ethernet2 interfaces from VLAN 999 to VLAN 10
-4. Adds loopback interfaces for management
-5. Saves the configuration
+3. Enables Ethernet2 interfaces with "no shutdown" command
+4. Ensures correct VLAN 10 assignment
+5. Adds loopback interfaces for management
+6. Saves the configuration
 
 ### Step 4: Verify the Fix
 
@@ -71,7 +74,7 @@ Run the connectivity test again:
 ## What You Learned
 
 1. **Problem Identification**: Using automated tests to identify connectivity issues
-2. **Root Cause Analysis**: Understanding VLAN misconfigurations
+2. **Root Cause Analysis**: Understanding interface shutdown issues
 3. **Automated Remediation**: Using Python + Jinja2 + pyeapi to fix configurations at scale
 4. **Verification**: Re-testing to confirm the fix worked
 
@@ -106,15 +109,15 @@ Run the connectivity test again:
 
 ### Before Fix (Broken)
 
-- access1 Eth2: VLAN 999 ❌
-- rtr1 Eth2: VLAN 999 ❌
-- Result: workstation1 and mgmt in different broadcast domains
+- access1 Eth2: **shutdown** ❌
+- rtr1 Eth2: **shutdown** ❌
+- Result: No physical connectivity to workstation1 and mgmt
 
 ### After Fix (Working)
 
-- access1 Eth2: VLAN 10 ✅
-- rtr1 Eth2: VLAN 10 ✅
-- Result: workstation1 and mgmt in same VLAN, Layer 2 connectivity restored
+- access1 Eth2: **no shutdown** + VLAN 10 ✅
+- rtr1 Eth2: **no shutdown** + VLAN 10 ✅
+- Result: Interfaces enabled, Layer 2 connectivity restored
 
 ## Files Involved
 

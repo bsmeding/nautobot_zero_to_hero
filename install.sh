@@ -67,7 +67,9 @@ sudo apt-get install -y \
     software-properties-common \
     iputils-ping \
     lsb-release \
-    git
+    git \
+    make \
+    python3.12-venv \
 
 echo "[INFO] Checking if Docker is already installed..."
 if command -v docker &> /dev/null; then

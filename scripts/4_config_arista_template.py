@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
 """
-FIX NETWORK CONNECTIVITY: Correct VLAN assignments on Arista switches.
+FIX NETWORK CONNECTIVITY: Enable shutdown interfaces on Arista switches.
 
 This script demonstrates how to use Jinja2 templates to fix network connectivity issues.
-The problem: Ethernet2 ports are in wrong VLAN (999) instead of VLAN 10
-The solution: Move Ethernet2 to correct VLAN 10 to restore Layer 2 connectivity
+The problem: Ethernet2 ports are administratively shutdown
+The solution: Enable (no shutdown) Ethernet2 interfaces to restore connectivity
 """
 
 import pyeapi
@@ -93,8 +93,8 @@ def main() -> None:
     print("\n" + "=" * 70)
     print("🔧 FIXING NETWORK CONNECTIVITY ISSUE")
     print("=" * 70)
-    print("\nPROBLEM: Ethernet2 ports are in wrong VLAN (999)")
-    print("SOLUTION: Move Ethernet2 to correct VLAN 10")
+    print("\nPROBLEM: Ethernet2 ports are administratively shutdown")
+    print("SOLUTION: Enable interfaces with 'no shutdown' command")
     print("\nDevices to fix: access1, rtr1")
     print("=" * 70)
     

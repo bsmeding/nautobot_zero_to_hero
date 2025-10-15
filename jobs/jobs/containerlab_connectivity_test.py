@@ -7,7 +7,14 @@ using ping, traceroute, and other network diagnostic tools.
 
 import subprocess
 import socket
-from nautobot.apps.jobs import Job, ChoiceVar, IntegerVar, register_jobs
+from nautobot.apps.jobs import Job, ObjectVar, IntegerVar, register_jobs
+from nautobot.virtualization.models import VirtualMachine
+
+try:
+    import paramiko
+    PARAMIKO_AVAILABLE = True
+except ImportError:
+    PARAMIKO_AVAILABLE = False
 
 name = "LAB Setup"
 
@@ -22,32 +29,21 @@ class ContainerlabConnectivityTest(Job):
 
     class Meta:
         name = "Containerlab Connectivity Test"
-        description = "Test connectivity to containerlab nodes (ping, traceroute, etc.)"
+        description = "Test data plane connectivity to containerlab nodes (tests 10.0.0.x IPs through switches)"
         has_sensitive_variables = False
 
-    # Node IP mapping based on containerlab configuration
-    NODE_IPS = {
-        "clab-nautobot-lab-mgmt": "172.20.20.5",
-        "clab-nautobot-lab-workstation1": "172.20.20.4",
-        "clab-nautobot-lab-access1": "172.20.20.11",
-        "clab-nautobot-lab-access2": "172.20.20.12",
-        "clab-nautobot-lab-dist1": "172.20.20.13",
-        "clab-nautobot-lab-rtr1": "172.20.20.14",
-    }
-
-    destination_node = ChoiceVar(
-        label="Destination Node",
-        description="The containerlab node to test connectivity to",
-        choices=(
-            ("clab-nautobot-lab-mgmt", "Management Server (172.20.20.5)"),
-            ("clab-nautobot-lab-workstation1", "Workstation 1 (172.20.20.4)"),
-            ("clab-nautobot-lab-access1", "Access Switch 1 (172.20.20.11)"),
-            ("clab-nautobot-lab-access2", "Access Switch 2 (172.20.20.12)"),
-            ("clab-nautobot-lab-dist1", "Distribution Switch 1 (172.20.20.13)"),
-            ("clab-nautobot-lab-rtr1", "Router 1 (172.20.20.14)"),
-        ),
+    source_vm = ObjectVar(
+        model=VirtualMachine,
+        label="Source VM",
+        description="Virtual machine to run tests FROM",
         required=True,
-        default="clab-nautobot-lab-workstation1",
+    )
+
+    destination_vm = ObjectVar(
+        model=VirtualMachine,
+        label="Destination VM",
+        description="Virtual machine to test connectivity TO",
+        required=True,
     )
 
     ping_count = IntegerVar(
@@ -57,34 +53,49 @@ class ContainerlabConnectivityTest(Job):
         required=False,
     )
 
-    def run(self, destination_node, ping_count):
+    def run(self, source_vm, destination_vm, ping_count):
         """Main execution method."""
         self.logger.info("=" * 80)
-        self.logger.info(f"Connectivity Test from Nautobot → {destination_node}")
+        self.logger.info(f"Connectivity Test: {source_vm.name} → {destination_vm.name}")
         self.logger.info("=" * 80)
 
-        # Get the destination IP address
-        dest_ip = self.NODE_IPS.get(destination_node)
-        if not dest_ip:
-            self.logger.error(f"Could not determine IP address for {destination_node}")
-            return f"Error: Unknown node {destination_node}"
+        # Validate source and destination are different
+        if source_vm.id == destination_vm.id:
+            self.logger.error("Source and destination must be different!")
+            return "Error: Cannot test connectivity to same VM"
 
-        self.logger.info(f"Destination IP: {dest_ip}")
+        # Get IP addresses from VMs (using eth1 interface for data plane)
+        source_ip = self._get_vm_data_plane_ip(source_vm)
+        dest_ip = self._get_vm_data_plane_ip(destination_vm)
+        
+        if not source_ip:
+            self.logger.error(f"Could not find data plane IP (eth1) for source VM: {source_vm.name}")
+            return f"Error: {source_vm.name} has no eth1 IP address"
+        
+        if not dest_ip:
+            self.logger.error(f"Could not find data plane IP (eth1) for destination VM: {destination_vm.name}")
+            return f"Error: {destination_vm.name} has no eth1 IP address"
+
+        self.logger.info(f"Source: {source_vm.name} ({source_ip})")
+        self.logger.info(f"Destination: {destination_vm.name} ({dest_ip})")
         self.logger.info("")
 
-        # Run connectivity tests
+        # Get source VM's management IP for SSH access
+        source_mgmt_ip = self._get_vm_mgmt_ip(source_vm)
+        if not source_mgmt_ip:
+            self.logger.error(f"Could not find management IP for source VM: {source_vm.name}")
+            return f"Error: {source_vm.name} has no management IP (primary_ip4)"
+
+        # Run connectivity tests from source to destination
         results = []
         
-        # Test 1: Ping test (critical)
-        results.append(self._run_ping_test(dest_ip, ping_count))
-        
-        # Test 2: TCP port test (informational only - SSH may not be running)
-        self._run_tcp_test(dest_ip, 22, "SSH")
-        # Don't add to results since SSH is optional
-        
-        # Test 3: DNS resolution test (informational only)
-        self._run_dns_test(destination_node)
-        # Don't add to results since DNS may not be configured
+        # Test 1: Ping test (critical) - SSH to source and ping from there
+        results.append(self._run_ping_test_via_ssh(
+            source_vm.name, 
+            source_mgmt_ip, 
+            dest_ip, 
+            ping_count
+        ))
 
         # Summary
         self.logger.info("")
@@ -96,54 +107,137 @@ class ContainerlabConnectivityTest(Job):
         total_tests = len(results)
         
         self.logger.info(f"Critical tests passed: {success_count}/{total_tests}")
-        self.logger.info("Note: SSH and DNS tests are informational only")
         
         if success_count == total_tests:
-            self.logger.success("✓ All critical connectivity tests PASSED")
-            return "Connectivity test passed - Node is reachable"
+            self.logger.success("✓ Connectivity test PASSED")
+            return f"SUCCESS: Can reach {destination_vm.name} at {dest_ip}"
         else:
-            self.logger.error(f"✗ Critical test(s) failed ({total_tests - success_count} failure(s))")
-            return f"Connectivity test FAILED - Node may not be reachable"
+            self.logger.error(f"✗ Connectivity test FAILED")
+            return f"FAILED: Cannot reach {destination_vm.name} at {dest_ip}"
 
-    def _run_ping_test(self, dest_ip, count):
-        """Run ping test to destination."""
-        self.logger.info("-" * 80)
-        self.logger.info(f"TEST 1: Ping Test ({count} packets)")
-        self.logger.info("-" * 80)
+    def _get_vm_data_plane_ip(self, vm):
+        """Get the data plane IP address (eth1) for a VM.
+        
+        Args:
+            vm: VirtualMachine object
+            
+        Returns:
+            IP address string or None
+        """
+        from nautobot.virtualization.models import VMInterface
         
         try:
-            # Run ping command from Nautobot container
-            cmd = ["ping", "-c", str(count), "-W", "2", dest_ip]
+            # Get eth1 interface (data plane)
+            eth1 = VMInterface.objects.get(virtual_machine=vm, name="eth1")
             
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
+            # Get IP addresses assigned to this interface
+            ip_addresses = eth1.ip_addresses.all()
+            
+            if ip_addresses:
+                # Return first IP address without subnet mask
+                ip_addr = str(ip_addresses[0].address).split('/')[0]
+                return ip_addr
+            else:
+                self.logger.warning(f"VM {vm.name} eth1 has no IP addresses assigned")
+                return None
+                
+        except VMInterface.DoesNotExist:
+            self.logger.warning(f"VM {vm.name} has no eth1 interface")
+            return None
+
+    def _get_vm_mgmt_ip(self, vm):
+        """Get the management IP address for a VM.
+        
+        Args:
+            vm: VirtualMachine object
+            
+        Returns:
+            IP address string or None
+        """
+        if vm.primary_ip4:
+            return str(vm.primary_ip4.address).split('/')[0]
+        elif vm.primary_ip:
+            return str(vm.primary_ip.address).split('/')[0]
+        return None
+
+    def _run_ping_test_via_ssh(self, vm_name, mgmt_ip, dest_ip, count):
+        """Run ping test via SSH to source VM.
+        
+        Args:
+            vm_name: Name of source VM
+            mgmt_ip: Management IP to SSH to
+            dest_ip: Destination IP to ping
+            count: Number of ping packets
+            
+        Returns:
+            True if ping succeeds, False otherwise
+        """
+        self.logger.info("-" * 80)
+        self.logger.info(f"TEST: Ping from {vm_name} to {dest_ip}")
+        self.logger.info(f"      SSH to {mgmt_ip}, then ping {dest_ip} ({count} packets)")
+        self.logger.info("-" * 80)
+        
+        if not PARAMIKO_AVAILABLE:
+            self.logger.error("✗ paramiko library not available")
+            self.logger.error("  Install with: pip install paramiko")
+            return False
+        
+        try:
+            # SSH credentials for containerlab VMs
+            ssh_user = "root"
+            ssh_pass = "admin"
+            
+            # Create SSH client
+            ssh = paramiko.SSHClient()
+            ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            
+            self.logger.info(f"Connecting to {vm_name} at {mgmt_ip}...")
+            ssh.connect(
+                mgmt_ip,
+                username=ssh_user,
+                password=ssh_pass,
+                timeout=10,
+                look_for_keys=False,
+                allow_agent=False
             )
             
-            if result.returncode == 0:
-                self.logger.info(result.stdout)
-                # Parse ping statistics
-                lines = result.stdout.split('\n')
-                for line in lines:
-                    if 'packets transmitted' in line or 'min/avg/max' in line:
-                        self.logger.info(f"  {line.strip()}")
+            # Run ping command
+            ping_cmd = f"ping -c {count} -W 2 {dest_ip}"
+            self.logger.info(f"Executing: {ping_cmd}")
+            
+            stdin, stdout, stderr = ssh.exec_command(ping_cmd)
+            exit_code = stdout.channel.recv_exit_status()
+            output = stdout.read().decode()
+            error = stderr.read().decode()
+            
+            ssh.close()
+            
+            if exit_code == 0:
+                self.logger.info("Ping output:")
+                for line in output.splitlines():
+                    self.logger.info(f"  {line}")
                 self.logger.success("✓ Ping test PASSED")
                 return True
             else:
                 self.logger.warning("Ping failed:")
-                self.logger.warning(result.stdout)
-                if result.stderr:
-                    self.logger.warning(result.stderr)
+                for line in output.splitlines():
+                    self.logger.warning(f"  {line}")
+                if error:
+                    self.logger.warning(f"Error: {error}")
                 self.logger.error("✗ Ping test FAILED")
                 return False
                 
-        except subprocess.TimeoutExpired:
-            self.logger.error("✗ Ping test TIMEOUT")
+        except paramiko.AuthenticationException:
+            self.logger.error(f"✗ SSH authentication failed to {mgmt_ip}")
+            return False
+        except paramiko.SSHException as e:
+            self.logger.error(f"✗ SSH error: {e}")
+            return False
+        except socket.timeout:
+            self.logger.error(f"✗ Connection timeout to {mgmt_ip}")
             return False
         except Exception as e:
-            self.logger.error(f"✗ Ping test EXCEPTION: {e}")
+            self.logger.error(f"✗ Test exception: {e}")
             return False
 
     def _run_tcp_test(self, dest_ip, port, service_name):
@@ -193,6 +287,8 @@ class ContainerlabConnectivityTest(Job):
             result = socket.gethostbyname(hostname)
             
             self.logger.info(f"✓ Hostname '{hostname}' resolved to: {result}")
+            self.logger.info("  Note: This is the containerlab management IP")
+            self.logger.info("  Data plane connectivity is tested using different IPs (10.0.0.x)")
             self.logger.success("✓ DNS resolution successful")
             return True
                 

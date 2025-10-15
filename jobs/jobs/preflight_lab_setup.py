@@ -724,6 +724,32 @@ class PreflightLabSetup(Job):
             if created:
                 self.logger.info(f"Created VM interface eth1 for {vm_data['name']}")
             
+            # Assign data plane IP to eth1 interface
+            vm_data_ips = {
+                'workstation1': '10.0.0.15/24',
+                'management': '10.0.0.16/24'
+            }
+            
+            if vm_data['name'] in vm_data_ips:
+                data_ip = vm_data_ips[vm_data['name']]
+                
+                # Create or get data plane IP address
+                try:
+                    data_ip_obj = IPAddress.objects.get(address=data_ip)
+                    self.logger.info(f"Using existing data plane IP: {data_ip}")
+                except IPAddress.DoesNotExist:
+                    data_ip_obj = IPAddress.objects.create(
+                        address=data_ip,
+                        status=status,
+                        dns_name=f"{vm_data['name']}-data.lab",
+                        description=f"Data plane IP for {vm_data['name']} (eth1)"
+                    )
+                    self.logger.info(f"Created data plane IP: {data_ip} for {vm_data['name']}")
+                
+                # Assign IP to eth1 interface
+                vm_interface_eth1.ip_addresses.add(data_ip_obj)
+                self.logger.info(f"Assigned data plane IP {data_ip} to eth1 for {vm_data['name']}")
+            
             self.logger.info(f"VM interfaces and IP addresses created for {vm_data['name']}")
 
     def _create_interfaces_and_ips(self, site, mgmt_prefix, status):

@@ -26,26 +26,26 @@ class InterfaceJobHookReceiver(JobHookReceiver):
         object_type = Interface
         enabled = True  # Set to False to disable the hook
 
-    def run(self, commit, **kwargs):
+    def run(self, data, commit):
         """Entry point for Job Hook execution.
 
         Args:
-            commit: Boolean indicating if changes should be committed
-            **kwargs: Event context including:
+            data: Dictionary containing event context:
                 - action: one of "created", "updated", "deleted"
                 - object_pk: the primary key of the Interface
                 - object_repr: string representation
                 - changed_data: dict of changed fields (for updates)
                 - user: username (if available)
+            commit: Boolean indicating if changes should be committed
         """
         if not PYEAPI_AVAILABLE:
             self.log_warning("pyeapi not available - skipping device configuration")
             return
 
-        action = kwargs.get("action")
-        object_pk = kwargs.get("object_pk")
-        object_repr = kwargs.get("object_repr")
-        changed_data = kwargs.get("changed_data", {})
+        action = data.get("action")
+        object_pk = data.get("object_pk")
+        object_repr = data.get("object_repr")
+        changed_data = data.get("changed_data", {})
 
         # For deleted interfaces, we only have the pk and repr
         if action == "deleted":
@@ -193,8 +193,8 @@ class InterfaceJobHookReceiver(JobHookReceiver):
             connection = pyeapi.connect(
                 transport="https",
                 host=host,
-                username="admin",  # TODO: Get from secrets/credentials
-                password="admin",  # TODO: Get from secrets/credentials
+                username="admin",
+                password="admin",
                 port=443,
             )
             node = pyeapi.client.Node(connection)
