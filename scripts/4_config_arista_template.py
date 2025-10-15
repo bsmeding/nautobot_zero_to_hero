@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
 """
-Static example with Jinja2 template: render a config template for access1/access2 and push via eAPI.
-Demonstrates using Jinja2 templates with static inventory (no Nautobot dependency).
+FIX NETWORK CONNECTIVITY: Correct VLAN assignments on Arista switches.
+
+This script demonstrates how to use Jinja2 templates to fix network connectivity issues.
+The problem: Ethernet2 ports are in wrong VLAN (999) instead of VLAN 10
+The solution: Move Ethernet2 to correct VLAN 10 to restore Layer 2 connectivity
 """
 
 import pyeapi
@@ -16,38 +19,48 @@ ARISTA_DEVICES = [
         "host": "172.20.20.11",
         "loopback_ip": "10.99.1.1",
         "interfaces": [
-            {"name": "Ethernet1", "description": "Uplink to core"},
-            {"name": "Ethernet2", "description": "Access port VLAN 10"},
-            {"name": "Ethernet3", "description": "Access port VLAN 20"},
+            {"name": "Ethernet1", "description": "Uplink to dist1", "mode": "trunk", "vlans": "10"},
+            {"name": "Ethernet2", "description": "Connected to workstation1", "mode": "access", "vlan": "10"},
         ],
     },
     {
-        "name": "access2",
-        "host": "172.20.20.12",
-        "loopback_ip": "10.99.1.2",
+        "name": "rtr1",
+        "host": "172.20.20.14",
+        "loopback_ip": "10.99.1.14",
         "interfaces": [
-            {"name": "Ethernet1", "description": "Uplink to core"},
-            {"name": "Ethernet2", "description": "Access port VLAN 10"},
-            {"name": "Ethernet3", "description": "Access port VLAN 20"},
+            {"name": "Ethernet1", "description": "Uplink to dist1", "mode": "trunk", "vlans": "10"},
+            {"name": "Ethernet2", "description": "Connected to mgmt server", "mode": "access", "vlan": "10"},
         ],
     },
 ]
 
-# For simplicity, we are using a static template instead of loading jinja file
+# Template to fix VLAN configuration
 TEMPLATE = """
-hostname {{ device.name }}
+!
+! === FIX: Correct VLAN assignments ===
+!
+{% for iface in device.interfaces %}
+interface {{ iface.name }}
+  description {{ iface.description }}
+{% if iface.mode == "trunk" %}
+  switchport mode trunk
+  switchport trunk allowed vlan {{ iface.vlans }}
+{% else %}
+  switchport mode access
+  switchport access vlan {{ iface.vlan }}
+{% endif %}
+  no shutdown
+!
+{% endfor %}
+!
+! === Add Loopback for management ===
 !
 interface Loopback0
   description Management Loopback
   ip address {{ device.loopback_ip }}/32
   no shutdown
 !
-{% for iface in device.interfaces %}
-interface {{ iface.name }}
-  description {{ iface.description }}
-  no shutdown
-!
-{% endfor %}
+end
 """
 
 
@@ -77,15 +90,31 @@ def push_config(host: str, hostname: str, rendered_cfg: str) -> None:
 
 def main() -> None:
     """Render Jinja2 template for each device and push configuration."""
+    print("\n" + "=" * 70)
+    print("🔧 FIXING NETWORK CONNECTIVITY ISSUE")
+    print("=" * 70)
+    print("\nPROBLEM: Ethernet2 ports are in wrong VLAN (999)")
+    print("SOLUTION: Move Ethernet2 to correct VLAN 10")
+    print("\nDevices to fix: access1, rtr1")
+    print("=" * 70)
+    
     env = Environment(loader=BaseLoader(), trim_blocks=True, lstrip_blocks=True)
     tmpl = env.from_string(TEMPLATE)
 
     for device in ARISTA_DEVICES:
         rendered = tmpl.render(device=device)
-        print(f"\n=== Rendered config for {device['name']} ===")
+        print(f"\n>>> Rendered config for {device['name']} >>>")
         print(rendered)
-        print("=" * 50)
+        print("=" * 70)
         push_config(device["host"], device["name"], rendered)
+    
+    print("\n" + "=" * 70)
+    print("✅ Configuration applied successfully!")
+    print("=" * 70)
+    print("\nNext step: Test connectivity using Nautobot Job:")
+    print("  - Navigate to Jobs > 'Containerlab Connectivity Test'")
+    print("  - Test connectivity to workstation1 and mgmt")
+    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":
