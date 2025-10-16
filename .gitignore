@@ -6,6 +6,9 @@ containerlab/clab-nautobot-lab/*
 # Keep media folder structure but ignore contents
 media/*
 !media/.gitkeep
+# Keep secrets folder structure but ignore contents
+secrets/*
+!secrets/.gitkeep
 # Logs
 *.log
 logs/

@@ -58,6 +58,7 @@ services:
       - ./config/nautobot_config.py:/opt/nautobot/nautobot_config.py
       - ./jobs:/opt/nautobot/jobs
       - ./media:/opt/nautobot/media
+      - ./secrets:/opt/nautobot/secrets
     restart: unless-stopped
     # healthcheck:
     #   test: ["CMD", "curl", "-f", "http://localhost:8080/health/"]
@@ -144,6 +145,7 @@ services:
       - ./config/nautobot_config.py:/opt/nautobot/nautobot_config.py
       - ./jobs:/opt/nautobot/jobs
       - ./media:/opt/nautobot/media
+      - ./secrets:/opt/nautobot/secrets
     environment:
       - NAUTOBOT_DB_HOST=${NAUTOBOT_DB_HOST:-nzth-postgres}
       - NAUTOBOT_DB_PORT=5432

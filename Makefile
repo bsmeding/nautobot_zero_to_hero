@@ -32,7 +32,16 @@ install: venv
 	$(PIP) install \
 		pyeapi \
 		requests \
-		jinja2
+		jinja2 \
+		tabulate \
+		pandas \
+		paramiko \
+		nautobot \
+		netmiko \
+		pyats \
+		napalm \
+		napalm-srl \
+
 	@echo ""
 	@echo "✅ Virtual environment created and dependencies installed!"
 	@echo ""

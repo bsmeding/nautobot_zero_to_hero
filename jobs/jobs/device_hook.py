@@ -9,6 +9,7 @@ class DeviceJobHookReceiver(JobHookReceiver):
         name = "Device Configuration Hook"
         description = "Automatically configure device interfaces when created/updated/deleted in Nautobot"
         object_type = Device  # Target model for this Job Hook Receiver
+        enabled = False  # Disabled for now
 
     def run(self, commit, **kwargs):
         """Entry point for Job Hook execution.
@@ -27,13 +28,13 @@ class DeviceJobHookReceiver(JobHookReceiver):
 
         # Placeholder for future logic – branch by action
         if action == "created":
-            self.log_success(f"Device created: {object_repr} ({object_pk})")
+            self.logger.success(f"Device created: {object_repr} ({object_pk})")
         elif action == "updated":
-            self.log_success(f"Device updated: {object_repr} ({object_pk}); changes={changed_data}")
+            self.logger.success(f"Device updated: {object_repr} ({object_pk}); changes={changed_data}")
         elif action == "deleted":
-            self.log_success(f"Device deleted: {object_repr} ({object_pk})")
+            self.logger.success(f"Device deleted: {object_repr} ({object_pk})")
         else:
-            self.log_info(f"Device action '{action}' for {object_repr} ({object_pk})")
+            self.logger.info(f"Device action '{action}' for {object_repr} ({object_pk})")
 
 
 register_jobs(DeviceJobHookReceiver)

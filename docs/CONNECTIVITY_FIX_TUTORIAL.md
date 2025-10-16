@@ -44,13 +44,26 @@ interface Ethernet2
 
 **Root Cause**: Both Ethernet2 interfaces are administratively shutdown, preventing any communication.
 
-### Step 3: Fix with Automation
+### Step 3: Diagnose the Problem
+
+Run the diagnostic script to identify the root cause:
+
+```bash
+cd /home/bsmeding/nautobot_zero_to_hero/scripts
+python3 4a_diagnose_connectivity_issue.py
+```
+
+This will connect to the switches and check Ethernet2 interface status.
+
+**Expected Output**: Shows that Ethernet2 is SHUTDOWN on both access1 and rtr1
+
+### Step 4: Fix with Automation
 
 Run the fix script that uses Jinja2 templates and pyeapi:
 
 ```bash
 cd /home/bsmeding/nautobot_zero_to_hero/scripts
-python3 4_config_arista_template.py
+python3 4b_config_arista_template_fix.py
 ```
 
 **What the script does:**
@@ -61,7 +74,7 @@ python3 4_config_arista_template.py
 5. Adds loopback interfaces for management
 6. Saves the configuration
 
-### Step 4: Verify the Fix
+### Step 5: Verify the Fix
 
 Run the connectivity test again:
 
@@ -123,7 +136,8 @@ Run the connectivity test again:
 
 - `containerlab/bootstrap/access1.cfg` - Initial broken config
 - `containerlab/bootstrap/rtr1.cfg` - Initial broken config
-- `scripts/4_config_arista_template.py` - Fix script
+- `scripts/4a_diagnose_connectivity_issue.py` - Diagnostic script
+- `scripts/4b_config_arista_template_fix.py` - Fix script
 - `jobs/jobs/containerlab_connectivity_test.py` - Test job
 
 ## Next Steps

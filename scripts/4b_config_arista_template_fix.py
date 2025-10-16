@@ -12,51 +12,44 @@ import pyeapi
 from jinja2 import Environment, BaseLoader
 
 
-# Static device inventory
+# Static device inventory - focusing on Ethernet2 interfaces
 ARISTA_DEVICES = [
     {
         "name": "access1",
         "host": "172.20.20.11",
         "loopback_ip": "10.99.1.1",
         "interfaces": [
-            {"name": "Ethernet1", "description": "Uplink to dist1", "mode": "trunk", "vlans": "10"},
             {"name": "Ethernet2", "description": "Connected to workstation1", "mode": "access", "vlan": "10"},
         ],
     },
     {
         "name": "rtr1",
         "host": "172.20.20.14",
-        "loopback_ip": "10.99.1.14",
+        "loopback_ip": "10.0.0.254",  # In same subnet as workstation1/mgmt for easy testing
         "interfaces": [
-            {"name": "Ethernet1", "description": "Uplink to dist1", "mode": "trunk", "vlans": "10"},
             {"name": "Ethernet2", "description": "Connected to mgmt server", "mode": "access", "vlan": "10"},
         ],
     },
 ]
 
-# Template to fix VLAN configuration
+# Template to enable Ethernet2 interfaces and add loopback
 TEMPLATE = """
 !
-! === FIX: Correct VLAN assignments ===
+! === FIX: Enable Ethernet2 interfaces ===
 !
 {% for iface in device.interfaces %}
 interface {{ iface.name }}
   description {{ iface.description }}
-{% if iface.mode == "trunk" %}
-  switchport mode trunk
-  switchport trunk allowed vlan {{ iface.vlans }}
-{% else %}
   switchport mode access
   switchport access vlan {{ iface.vlan }}
-{% endif %}
   no shutdown
 !
 {% endfor %}
 !
-! === Add Loopback for management ===
+! === Add Loopback interface (for {{ device.name }}) ===
 !
 interface Loopback0
-  description Management Loopback
+  description {{ device.name }} Loopback - Reachable from data plane
   ip address {{ device.loopback_ip }}/32
   no shutdown
 !
@@ -94,7 +87,8 @@ def main() -> None:
     print("🔧 FIXING NETWORK CONNECTIVITY ISSUE")
     print("=" * 70)
     print("\nPROBLEM: Ethernet2 ports are administratively shutdown")
-    print("SOLUTION: Enable interfaces with 'no shutdown' command")
+    print("         (Run '4a_diagnose_connectivity_issue.py' to verify)")
+    print("\nSOLUTION: Enable interfaces with 'no shutdown' command")
     print("\nDevices to fix: access1, rtr1")
     print("=" * 70)
     
@@ -111,9 +105,14 @@ def main() -> None:
     print("\n" + "=" * 70)
     print("✅ Configuration applied successfully!")
     print("=" * 70)
-    print("\nNext step: Test connectivity using Nautobot Job:")
-    print("  - Navigate to Jobs > 'Containerlab Connectivity Test'")
-    print("  - Test connectivity to workstation1 and mgmt")
+    print("\nNext steps:")
+    print("  1. Run diagnostic script again to verify fix:")
+    print("     $ python3 4a_diagnose_connectivity_issue.py")
+    print()
+    print("  2. Test connectivity using Nautobot Job:")
+    print("     - Navigate to Jobs > 'Containerlab Connectivity Test'")
+    print("     - Select: workstation1 → management")
+    print("     - Should now PASS ✅")
     print("=" * 70 + "\n")
 
 

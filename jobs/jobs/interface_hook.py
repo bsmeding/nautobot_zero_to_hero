@@ -24,56 +24,63 @@ class InterfaceJobHookReceiver(JobHookReceiver):
         name = "Interface Configuration Hook"
         description = "Automatically configure device interfaces when created/updated/deleted in Nautobot"
         object_type = Interface
-        enabled = True  # Set to False to disable the hook
+        enabled = True  # Enabled - automatically syncs interface changes to devices
 
-    def run(self, data, commit):
+    def run(self, **kwargs):
         """Entry point for Job Hook execution.
 
         Args:
-            data: Dictionary containing event context:
+            **kwargs: Keyword arguments from Nautobot including:
                 - action: one of "created", "updated", "deleted"
                 - object_pk: the primary key of the Interface
                 - object_repr: string representation
                 - changed_data: dict of changed fields (for updates)
+                - commit: Boolean indicating if changes should be committed
                 - user: username (if available)
-            commit: Boolean indicating if changes should be committed
         """
         if not PYEAPI_AVAILABLE:
-            self.log_warning("pyeapi not available - skipping device configuration")
+            self.logger.warning("pyeapi not available - skipping device configuration")
             return
 
-        action = data.get("action")
-        object_pk = data.get("object_pk")
-        object_repr = data.get("object_repr")
-        changed_data = data.get("changed_data", {})
-
-        # For deleted interfaces, we only have the pk and repr
+        # Extract event context from kwargs
+        action = kwargs.get("action")
+        object_pk = kwargs.get("object_pk")
+        object_repr = kwargs.get("object_repr")
+        changed_data = kwargs.get("changed_data", {})
+        commit = kwargs.get("commit", True)  # Default to True for automatic configuration
+        
+        self.logger.info(f"Interface {action}: {object_repr} (pk={object_pk}, commit={commit})")
+        
+        # For deleted objects, we can't fetch them
         if action == "deleted":
-            self.log_info(f"Interface deleted: {object_repr} ({object_pk})")
-            self.log_warning("Cannot sync delete to device - interface object no longer exists")
+            self.logger.warning("Cannot sync delete to device - interface object no longer exists")
             return
-
-        # Fetch the interface object
+        
+        # Fetch the interface object by ID
+        if not object_pk:
+            self.logger.error("No object_pk provided")
+            return
+            
         try:
             interface = Interface.objects.get(pk=object_pk)
         except Interface.DoesNotExist:
-            self.log_error(f"Interface with pk {object_pk} not found")
+            self.logger.error(f"Interface with pk {object_pk} not found")
             return
 
         # Get the device
         device = interface.device
         if not device:
-            self.log_info(f"Interface {interface.name} has no device - skipping")
+            self.logger.info(f"Interface {interface.name} has no device - skipping")
             return
 
         # Only process physical interfaces (not virtual/LAG/etc)
         if not self._is_physical_interface(interface):
-            self.log_info(f"Interface {interface.name} is not physical - skipping device config")
+            self.logger.info(f"Interface {interface.name} is not physical - skipping device config")
             return
 
         # Get device connection details
         if not device.primary_ip4 and not device.primary_ip:
-            self.log_warning(f"Device {device.name} has no primary IP - cannot connect")
+            self.logger.warning(f"Device {device.name} has no primary IP - cannot connect")
             return
 
         # Branch by action
@@ -82,7 +89,7 @@ class InterfaceJobHookReceiver(JobHookReceiver):
         elif action == "updated":
             self._handle_interface_update(interface, device, changed_data, commit)
         else:
-            self.log_info(f"Interface action '{action}' for {object_repr} - no handler defined")
+            self.logger.info(f"Interface action '{action}' - no handler defined")
 
     def _is_physical_interface(self, interface):
         """Check if interface is a physical interface that should be configured."""
@@ -96,29 +103,29 @@ class InterfaceJobHookReceiver(JobHookReceiver):
 
     def _handle_interface_create(self, interface, device, commit):
         """Handle interface creation - configure new interface on device."""
-        self.log_info(f"Configuring new interface {interface.name} on device {device.name}")
+        self.logger.info(f"Configuring new interface {interface.name} on device {device.name}")
         
         try:
             config_commands = self._build_interface_config(interface)
             
             if commit:
                 self._push_config_to_device(device, config_commands)
-                self.log_success(f"Successfully configured interface {interface.name} on {device.name}")
+                self.logger.success(f"Successfully configured interface {interface.name} on {device.name}")
             else:
-                self.log_info(f"Dry-run mode - would configure:\n{chr(10).join(config_commands)}")
+                self.logger.info(f"Dry-run mode - would configure:\n{chr(10).join(config_commands)}")
         
         except Exception as e:
-            self.log_error(f"Failed to configure interface {interface.name}: {str(e)}")
+            self.logger.error(f"Failed to configure interface {interface.name}: {str(e)}")
 
     def _handle_interface_update(self, interface, device, changed_data, commit):
         """Handle interface update - reconfigure interface on device."""
-        self.log_info(f"Updating interface {interface.name} on device {device.name}")
-        self.log_info(f"Changed fields: {list(changed_data.keys())}")
+        self.logger.info(f"Updating interface {interface.name} on device {device.name}")
+        self.logger.info(f"Changed fields: {list(changed_data.keys())}")
         
         # Only push config if relevant fields changed
         relevant_fields = {'description', 'enabled', 'mode', 'mtu', 'type'}
         if not any(field in changed_data for field in relevant_fields):
-            self.log_info("No relevant fields changed - skipping device update")
+            self.logger.info("No relevant fields changed - skipping device update")
             return
         
         try:
@@ -126,12 +133,12 @@ class InterfaceJobHookReceiver(JobHookReceiver):
             
             if commit:
                 self._push_config_to_device(device, config_commands)
-                self.log_success(f"Successfully updated interface {interface.name} on {device.name}")
+                self.logger.success(f"Successfully updated interface {interface.name} on {device.name}")
             else:
-                self.log_info(f"Dry-run mode - would update:\n{chr(10).join(config_commands)}")
+                self.logger.info(f"Dry-run mode - would update:\n{chr(10).join(config_commands)}")
         
         except Exception as e:
-            self.log_error(f"Failed to update interface {interface.name}: {str(e)}")
+            self.logger.error(f"Failed to update interface {interface.name}: {str(e)}")
 
     def _build_interface_config(self, interface):
         """Build configuration commands for an interface.
@@ -183,11 +190,11 @@ class InterfaceJobHookReceiver(JobHookReceiver):
         
         # Currently only supporting Arista EOS via pyeapi
         if 'arista' not in platform_name and 'eos' not in platform_name:
-            self.log_warning(f"Platform {platform_name} not supported for automatic config - only Arista EOS")
+            self.logger.warning(f"Platform {platform_name} not supported for automatic config - only Arista EOS")
             return
         
         # Connect and push config
-        self.log_debug(f"Connecting to {device.name} at {host}")
+        self.logger.debug(f"Connecting to {device.name} at {host}")
         
         try:
             connection = pyeapi.connect(
@@ -205,10 +212,10 @@ class InterfaceJobHookReceiver(JobHookReceiver):
             # Save configuration
             node.enable("write memory")
             
-            self.log_debug(f"Configuration pushed successfully to {device.name}")
+            self.logger.debug(f"Configuration pushed successfully to {device.name}")
             
         except Exception as e:
-            self.log_error(f"Failed to connect/configure {device.name}: {str(e)}")
+            self.logger.error(f"Failed to connect/configure {device.name}: {str(e)}")
             raise
 
 

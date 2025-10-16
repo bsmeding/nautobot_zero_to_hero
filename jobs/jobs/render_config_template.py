@@ -57,7 +57,7 @@ class RenderConfigFromContext(Job):
             self.logger.info(line)
         self.logger.info("=" * 80)
         
-        # You could also:
+        # Add demo code for: 
         # - Save to a file
         # - Push to the device
         # - Store as a configuration backup
