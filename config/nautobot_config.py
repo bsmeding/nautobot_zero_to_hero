@@ -513,7 +513,7 @@ PLUGINS = [
     # "nautobot_device_onboarding",
     # "nautobot_firewall_models",
     # "nautobot_floor_plan",
-    # "nautobot_plugin_nornir",
+    "nautobot_plugin_nornir",
     # "nautobot_secrets_providers",
     # "nautobot_ssot",
     # "nautobot_topology_views",
@@ -558,6 +558,31 @@ PLUGINS_CONFIG = {
             'intended_path_template': '{{obj.site.slug}}/{{obj.name}}.cfg',
             'jinja_path_template': '{{obj.platform.slug}}/{{obj.platform.slug }}_main.j2',
             'backup_test_connectivity': False,
+        },
+    },
+    "nautobot_plugin_nornir": {
+        "use_config_context": {"secrets": False, "connection_options": True},
+        # Optionally set global connection options.
+        "connection_options": {
+            "napalm": {
+                "extras": {
+                    "optional_args": {"global_delay_factor": 1},
+                },
+            },
+            "netmiko": {
+                "extras": {
+                    "global_delay_factor": 1,
+                },
+            },
+        },
+        "nornir_settings": {
+            "credentials": "nautobot_plugin_nornir.plugins.credentials.env_vars.CredentialsEnvVars",
+            "runner": {
+                "plugin": "threaded",
+                "options": {
+                    "num_workers": 20,
+                },
+            },
         },
     }
 }

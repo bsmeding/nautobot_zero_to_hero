@@ -135,14 +135,27 @@ Run the connectivity test again:
 ## Files Involved
 
 - `containerlab/bootstrap/access1.cfg` - Initial broken config
-- `containerlab/bootstrap/rtr1.cfg` - Initial broken config
+- `containerlab/bootstrap/rtr1.cfg` - Initial broken config  
 - `scripts/4a_diagnose_connectivity_issue.py` - Diagnostic script
-- `scripts/4b_config_arista_template_fix.py` - Fix script
+- `scripts/4b_config_arista_template_fix.py` - Fix script (static inventory)
+- `scripts/5_config_arista_nautobot_inventory.py` - Fix script (Nautobot inventory)
+- `scripts/6_config_arista_template_nautobot_full.py` - Full Nautobot-driven (inventory + state)
 - `jobs/jobs/containerlab_connectivity_test.py` - Test job
+- `jobs/jobs/interface_hook.py` - Automatic sync hook
+
+## Automation Journey
+
+This tutorial demonstrates the evolution of network automation:
+
+1. **Script 4a**: Manual diagnosis (connect and check)
+2. **Script 4b**: Hardcoded fix (static device list)
+3. **Script 5**: Nautobot inventory (dynamic device list, static config)
+4. **Script 6**: Full Nautobot SoT (dynamic devices + interface states)
+5. **Interface Hook**: Automatic real-time sync (ultimate automation)
 
 ## Next Steps
 
-- Try the same fix using Nautobot as source of truth (script 5)
-- Explore more advanced templating with variables
-- Automate the entire workflow: test → detect → fix → verify
+- Progress through scripts 5 and 6 to see automation evolution
+- Enable Interface Hook for automatic sync
+- Modify interface in Nautobot → Watch it sync to device automatically!
 

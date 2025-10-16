@@ -83,37 +83,19 @@ def push_config(host: str, hostname: str, rendered_cfg: str) -> None:
 
 def main() -> None:
     """Render Jinja2 template for each device and push configuration."""
-    print("\n" + "=" * 70)
-    print("🔧 FIXING NETWORK CONNECTIVITY ISSUE")
-    print("=" * 70)
-    print("\nPROBLEM: Ethernet2 ports are administratively shutdown")
-    print("         (Run '4a_diagnose_connectivity_issue.py' to verify)")
-    print("\nSOLUTION: Enable interfaces with 'no shutdown' command")
-    print("\nDevices to fix: access1, rtr1")
-    print("=" * 70)
-    
+
+    # Load template    
     env = Environment(loader=BaseLoader(), trim_blocks=True, lstrip_blocks=True)
     tmpl = env.from_string(TEMPLATE)
 
     for device in ARISTA_DEVICES:
         rendered = tmpl.render(device=device)
+        # Show rendered config (for debugging)
         print(f"\n>>> Rendered config for {device['name']} >>>")
         print(rendered)
         print("=" * 70)
+        # Push configuration to device
         push_config(device["host"], device["name"], rendered)
-    
-    print("\n" + "=" * 70)
-    print("✅ Configuration applied successfully!")
-    print("=" * 70)
-    print("\nNext steps:")
-    print("  1. Run diagnostic script again to verify fix:")
-    print("     $ python3 4a_diagnose_connectivity_issue.py")
-    print()
-    print("  2. Test connectivity using Nautobot Job:")
-    print("     - Navigate to Jobs > 'Containerlab Connectivity Test'")
-    print("     - Select: workstation1 → management")
-    print("     - Should now PASS ✅")
-    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":

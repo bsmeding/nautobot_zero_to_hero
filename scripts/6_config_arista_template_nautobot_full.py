@@ -49,7 +49,7 @@ end
 
 
 def get_access_devices(nb_url: str, token: str):
-    """Fetch all Arista devices from Nautobot (access switches and routers)."""
+    """Fetch Access Switch devices from Nautobot."""
     headers = {"Authorization": f"Token {token}"}
     # Fetch all devices with depth=1 to get related objects
     resp = requests.get(
@@ -76,16 +76,16 @@ def get_access_devices(nb_url: str, token: str):
         
         print(f"     - {d.get('name')}: role type={role_type}, value='{role_name}'")
     
-    # Filter for Arista devices (access1, access2, rtr1) by platform or just get all
-    # For simplicity, return all devices with primary IPs (likely the network devices)
-    target_devices = [
+    # Filter for Access Switch devices only
+    access_switches = [
         d for d in all_devices 
-        if d.get("primary_ip4") or d.get("primary_ip")
+        if isinstance(d.get("role"), dict) and 
+           "Access Switch" in d["role"].get("display", d["role"].get("name", ""))
     ]
     
-    print(f"\n   Selected {len(target_devices)} devices with primary IPs\n")
+    print(f"\n   Selected {len(access_switches)} Access Switch devices\n")
     
-    return target_devices
+    return access_switches
 
 
 def get_device_interfaces(nb_url: str, token: str, device_id: str):
