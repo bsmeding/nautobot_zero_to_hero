@@ -525,7 +525,7 @@ PLUGINS = [
 PLUGINS_CONFIG = {
     'nautobot_device_onboarding': {
         'default_site': 'Main',
-        'default_device_role': 'Switch',
+        'default_device_role': 'Network Equipment',
         'default_device_status': 'Active',
         'platform_map': {
             'cisco_ios': 'Cisco IOS',

@@ -9,6 +9,8 @@ media/*
 # Keep secrets folder structure but ignore contents
 secrets/*
 !secrets/.gitkeep
+# Templates
+templates/*
 # Logs
 *.log
 logs/
