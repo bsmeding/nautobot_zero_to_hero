@@ -42,17 +42,33 @@ class InterfaceJobHookReceiver(JobHookReceiver):
             self.logger.warning("pyeapi not available - skipping device configuration")
             return
 
-        # Extract event context from kwargs
-        action = kwargs.get("action")
-        object_pk = kwargs.get("object_pk")
-        object_repr = kwargs.get("object_repr")
-        changed_data = kwargs.get("changed_data", {})
+        # Get ObjectChange object from kwargs
+        object_change = kwargs.get("object_change")
         commit = kwargs.get("commit", True)  # Default to True for automatic configuration
+        
+        if not object_change:
+            # Try old-style parameters (for backwards compatibility)
+            action = kwargs.get("action")
+            object_pk = kwargs.get("object_pk")
+            object_repr = kwargs.get("object_repr")
+            changed_data = kwargs.get("changed_data", {})
+        else:
+            # Extract data from ObjectChange object
+            action = object_change.action
+            object_pk = object_change.changed_object_id
+            object_repr = str(object_change.changed_object) if object_change.changed_object else f"Interface {object_change.changed_object_id}"
+            changed_data = object_change.object_data_v2 or {}
         
         self.logger.info(f"Interface {action}: {object_repr} (pk={object_pk}, commit={commit})")
         
+        # Check if action is valid
+        if not action:
+            self.logger.warning("Interface hook triggered but no action provided")
+            self.logger.warning("Available kwargs keys: " + str(list(kwargs.keys())))
+            return
+        
         # For deleted objects, we can't fetch them
-        if action == "deleted":
+        if action in ["deleted", "delete"]:
             self.logger.warning("Cannot sync delete to device - interface object no longer exists")
             return
         
@@ -84,10 +100,21 @@ class InterfaceJobHookReceiver(JobHookReceiver):
             return
 
         # Branch by action
-        if action == "created":
+        if action in ["created", "create"]:
             self._handle_interface_create(interface, device, commit)
-        elif action == "updated":
-            self._handle_interface_update(interface, device, changed_data, commit)
+        elif action in ["updated", "update"]:
+            # For ObjectChange, get changed fields differently
+            if object_change:
+                # Get pre and post change data to determine what changed
+                pre_change = object_change.object_data or {}
+                post_change = object_change.object_data_v2 or {}
+                changed_fields = [key for key in post_change.keys() if pre_change.get(key) != post_change.get(key)]
+                changed_data_dict = {key: post_change[key] for key in changed_fields}
+            else:
+                # Old-style changed_data
+                changed_data_dict = changed_data
+            
+            self._handle_interface_update(interface, device, changed_data_dict, commit)
         else:
             self.logger.info(f"Interface action '{action}' - no handler defined")
 
@@ -183,7 +210,8 @@ class InterfaceJobHookReceiver(JobHookReceiver):
         """
         # Get device IP
         primary = device.primary_ip4 or device.primary_ip
-        host = primary.address.ip if hasattr(primary.address, 'ip') else str(primary.address).split('/')[0]
+        # primary is an IPAddress object, primary.address is an IPNetwork object
+        host = str(primary.address.ip) if hasattr(primary.address, 'ip') else str(primary.address).split('/')[0]
         
         # Get platform-specific settings
         platform_name = device.platform.name.lower() if device.platform else ""

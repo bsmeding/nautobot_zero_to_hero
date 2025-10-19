@@ -757,46 +757,59 @@ class PreflightLabSetup(Job):
         """Create interfaces and IP addresses for devices."""
         from nautobot.dcim.models import Device, Interface
         from nautobot.virtualization.models import VirtualMachine, VMInterface
-        from nautobot.ipam.models import IPAddress
+        from nautobot.ipam.models import IPAddress, VLAN
         import ipaddress
         
-        # Interface definitions for devices
+        # Get VLAN objects for assignment (must be created earlier in the job)
+        try:
+            vlan_10 = VLAN.objects.get(vid=10)
+            vlan_20 = VLAN.objects.get(vid=20)
+            vlan_30 = VLAN.objects.get(vid=30)
+            self.logger.info("Retrieved VLANs for interface configuration")
+        except VLAN.DoesNotExist as e:
+            self.logger.error(f"VLANs not found: {e}. Ensure VLANs are created before interfaces.")
+            # Create VLANs if they don't exist
+            vlan_10 = None
+            vlan_20 = None
+            vlan_30 = None
+        
+        # Interface definitions for devices (based on containerlab bootstrap configs)
         device_interface_configs = {
             'access1': {
                 'mgmt_ip': '172.20.20.11/24',
                 'interfaces': [
-                    {'name': 'Management0', 'description': 'Management interface'},
-                    {'name': 'Ethernet1', 'description': 'Data interface - connected to dist1'},
-                    {'name': 'Ethernet2', 'description': 'Data interface - connected to workstation1'},
-                    {'name': 'Ethernet3', 'description': 'Data interface - available for connections'}
+                    {'name': 'Management0', 'description': 'Management interface', 'type': '1000base-t'},
+                    {'name': 'Ethernet1', 'description': 'Uplink to dist1', 'type': '1000base-t', 'mode': 'tagged', 'tagged_vlans': [vlan_10]},
+                    {'name': 'Ethernet2', 'description': 'Connected to workstation1', 'type': '1000base-t', 'mode': 'access', 'untagged_vlan': vlan_10},
+                    {'name': 'Ethernet3', 'description': 'Available for connections', 'type': '1000base-t'}
                 ]
             },
             'access2': {
                 'mgmt_ip': '172.20.20.12/24',
                 'interfaces': [
-                    {'name': 'Management0', 'description': 'Management interface'},
-                    {'name': 'Ethernet1', 'description': 'Data interface - connected to dist1'},
-                    {'name': 'Ethernet2', 'description': 'Data interface - available for connections'},
-                    {'name': 'Ethernet3', 'description': 'Data interface - available for connections'}
+                    {'name': 'Management0', 'description': 'Management interface', 'type': '1000base-t'},
+                    {'name': 'Ethernet1', 'description': 'Data interface - connected to dist1', 'type': '1000base-t', 'mode': 'tagged-all'},
+                    {'name': 'Ethernet2', 'description': 'Data interface - available for connections', 'type': '1000base-t', 'mode': 'access', 'untagged_vlan': vlan_20},
+                    {'name': 'Ethernet3', 'description': 'Data interface - available for connections', 'type': '1000base-t', 'mode': 'access', 'untagged_vlan': vlan_30}
                 ]
             },
             'dist1': {
                 'mgmt_ip': '172.20.20.13/24',
                 'interfaces': [
-                    {'name': 'Management0', 'description': 'Management interface'},
-                    {'name': 'Ethernet1', 'description': 'Data interface - connected to access1'},
-                    {'name': 'Ethernet2', 'description': 'Data interface - connected to access2'},
-                    {'name': 'Ethernet3', 'description': 'Data interface - connected to rtr1'},
-                    {'name': 'Ethernet4', 'description': 'Data interface - available for connections'}
+                    {'name': 'Management0', 'description': 'Management interface', 'type': '1000base-t'},
+                    {'name': 'Ethernet1', 'description': 'Connected to access1', 'type': '1000base-t', 'mode': 'tagged', 'tagged_vlans': [vlan_10]},
+                    {'name': 'Ethernet2', 'description': 'Connected to access2', 'type': '1000base-t', 'mode': 'tagged', 'tagged_vlans': [vlan_10]},
+                    {'name': 'Ethernet3', 'description': 'Connected to rtr1', 'type': '1000base-t', 'mode': 'tagged', 'tagged_vlans': [vlan_10]},
+                    {'name': 'Ethernet4', 'description': 'Data interface - available for connections', 'type': '1000base-t'}
                 ]
             },
             'rtr1': {
                 'mgmt_ip': '172.20.20.14/24',
                 'interfaces': [
-                    {'name': 'Management0', 'description': 'Management interface'},
-                    {'name': 'Ethernet1', 'description': 'Data interface - connected to dist1'},
-                    {'name': 'Ethernet2', 'description': 'Data interface - connected to mgmt'},
-                    {'name': 'Ethernet3', 'description': 'Data interface - available for connections'}
+                    {'name': 'Management0', 'description': 'Management interface', 'type': '1000base-t'},
+                    {'name': 'Ethernet1', 'description': 'Uplink to dist1', 'type': '1000base-t', 'mode': 'tagged', 'tagged_vlans': [vlan_10]},
+                    {'name': 'Ethernet2', 'description': 'Connected to mgmt server', 'type': '1000base-t', 'mode': 'access', 'untagged_vlan': vlan_10},
+                    {'name': 'Ethernet3', 'description': 'Available for connections', 'type': '1000base-t'}
                 ]
             }
         }
@@ -822,13 +835,40 @@ class PreflightLabSetup(Job):
                         device=device,
                         name=interface_data['name'],
                         defaults={
-                            'type': '1000base-t',
+                            'type': interface_data.get('type', '1000base-t'),
                             'status': status,
-                            'description': interface_data['description']
+                            'description': interface_data['description'],
+                            'mode': interface_data.get('mode', ''),
                         }
                     )
+                    
+                    # Update interface if it already exists
+                    if not created:
+                        interface.description = interface_data['description']
+                        interface.type = interface_data.get('type', '1000base-t')
+                        interface.mode = interface_data.get('mode', '')
+                        interface.save()
+                    
+                    # Configure VLANs based on mode
+                    if 'tagged_vlans' in interface_data and interface_data['tagged_vlans']:
+                        # Set tagged VLANs (trunk mode)
+                        # Filter out None values in case VLANs don't exist
+                        valid_vlans = [v for v in interface_data['tagged_vlans'] if v is not None]
+                        if valid_vlans:
+                            interface.tagged_vlans.set(valid_vlans)
+                            vlan_ids = [v.vid for v in valid_vlans]
+                            self.logger.info(f"Set tagged VLANs {vlan_ids} on {interface_data['name']}")
+                    
+                    if 'untagged_vlan' in interface_data and interface_data['untagged_vlan']:
+                        # Set untagged VLAN (access mode)
+                        interface.untagged_vlan = interface_data['untagged_vlan']
+                        interface.save()
+                        self.logger.info(f"Set untagged VLAN {interface_data['untagged_vlan'].vid} on {interface_data['name']}")
+                    
                     if created:
                         self.logger.info(f"Created interface {interface_data['name']} for {device_name}")
+                    else:
+                        self.logger.info(f"Updated interface {interface_data['name']} for {device_name}")
                 
                 # Create management IP address for management interface
                 mgmt_interface_name = config['interfaces'][0]['name']  # First interface is always management
