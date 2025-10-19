@@ -34,7 +34,7 @@ class ProvisionDevice(Job):
         name = "Provision Device"
         description = "Generate intended config from Golden Config and deploy to device"
         has_sensitive_variables = True
-        field_order = ["device", "dry_run", "replace_config", "commit_changes"]
+        field_order = ["device", "dry_run", "replace_config", "commit_changes", "show_debug"]
 
     device = ObjectVar(
         description="Device to provision",
@@ -59,12 +59,21 @@ class ProvisionDevice(Job):
         default=True,
         required=False,
     )
+    
+    show_debug = BooleanVar(
+        description="Show detailed debug/info logs",
+        default=False,
+        required=False,
+    )
 
-    def run(self, device, dry_run=True, replace_config=False, commit_changes=True):
+    def run(self, device, dry_run=True, replace_config=False, commit_changes=True, show_debug=False):
         """Main execution method."""
-        self.logger.info("=" * 80)
-        self.logger.info(f"Starting provisioning for device: {device.name}")
-        self.logger.info("=" * 80)
+        # Store debug flag for use in helper methods
+        self._show_debug = show_debug
+        
+        self._log_info("=" * 80)
+        self._log_info(f"Starting provisioning for device: {device.name}")
+        self._log_info("=" * 80)
 
         # Validate device has required attributes
         if not self._validate_device(device):
@@ -90,13 +99,23 @@ class ProvisionDevice(Job):
             commit_changes
         )
 
-        self.logger.info("=" * 80)
+        self._log_info("=" * 80)
         self.logger.success(f"Provisioning completed for {device.name}")
-        self.logger.info("=" * 80)
+        self._log_info("=" * 80)
+
+    def _log_info(self, message):
+        """Log info message only if debug mode is enabled."""
+        if getattr(self, '_show_debug', False):
+            self.logger.info(message)
+    
+    def _log_debug(self, message):
+        """Log debug message only if debug mode is enabled."""
+        if getattr(self, '_show_debug', False):
+            self.logger.debug(message)
 
     def _validate_device(self, device):
         """Validate device has all required attributes."""
-        self.logger.info("Validating device configuration...")
+        self._log_info("Validating device configuration...")
 
         if not device.platform:
             self.logger.error(f"Device {device.name} has no platform configured")
@@ -118,43 +137,97 @@ class ProvisionDevice(Job):
 
     def _get_credentials(self, device):
         """Get device credentials from secrets or use defaults."""
+        from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
+        
         username = "admin"
         password = "admin"
 
         # Try to get credentials from secrets group
         if device.secrets_group:
+            self._log_info(f"Secrets group configured: {device.secrets_group.name}")
+            
+            username_from_secrets = False
+            password_from_secrets = False
+            
+            # Try to get username using proper Nautobot choices
             try:
-                user_secret = device.secrets_group.get_secret_value(
-                    access_type="generic",
-                    secret_type="username",
+                username = device.secrets_group.get_secret_value(
+                    access_type=SecretsGroupAccessTypeChoices.TYPE_GENERIC,
+                    secret_type=SecretsGroupSecretTypeChoices.TYPE_USERNAME,
+                    obj=device,  # Pass device for template context
                 )
-                if user_secret:
-                    username = user_secret
-                    self.logger.info("Using username from secrets group")
-
-                pass_secret = device.secrets_group.get_secret_value(
-                    access_type="generic",
-                    secret_type="password",
-                )
-                if pass_secret:
-                    password = pass_secret
-                    self.logger.info("Using password from secrets group")
-
+                if username:
+                    self.logger.success(f"✓ Retrieved username from secrets group: {username}")
+                    username_from_secrets = True
+                else:
+                    username = "admin"
+                    self._log_info("Username secret returned empty, using default")
             except Exception as e:
-                self.logger.warning(
-                    f"Could not retrieve secrets: {e}. Using default credentials."
+                username = "admin"
+                self._log_debug(f"Could not retrieve username: {type(e).__name__}: {e}")
+                self._log_info("Could not retrieve username from secrets, using default")
+            
+            # Try to get password using proper Nautobot choices
+            try:
+                password = device.secrets_group.get_secret_value(
+                    access_type=SecretsGroupAccessTypeChoices.TYPE_GENERIC,
+                    secret_type=SecretsGroupSecretTypeChoices.TYPE_PASSWORD,
+                    obj=device,  # Pass device for template context
                 )
+                if password:
+                    self.logger.success("✓ Retrieved password from secrets group")
+                    password_from_secrets = True
+                else:
+                    password = "admin"
+                    self._log_info("Password secret returned empty, using default")
+            except Exception as e:
+                password = "admin"
+                self._log_debug(f"Could not retrieve password: {type(e).__name__}: {e}")
+                self._log_info("Could not retrieve password from secrets, using default")
+            
+            # Check if we got credentials from secrets
+            if username_from_secrets or password_from_secrets:
+                self.logger.success(f"Using credentials from secrets group: {device.secrets_group.name}")
+            else:
+                self.logger.warning(
+                    f"Secrets group '{device.secrets_group.name}' is configured but "
+                    "secrets could not be retrieved. Using default credentials (admin/admin)."
+                )
+                self._log_info("")
+                self._log_info("To fix this, you have two options:")
+                self._log_info("")
+                self._log_info("Option 1: Set environment variables in Nautobot")
+                self._log_info("  Add to docker-compose.yml or nautobot_config.py:")
+                self._log_info("  NAUTOBOT_NAPALM_USERNAME=admin")
+                self._log_info("  NAUTOBOT_NAPALM_PASSWORD=admin")
+                self._log_info("")
+                self._log_info("Option 2: Change secrets to use Text provider instead")
+                self._log_info("  Secrets → Secrets → Edit each secret")
+                self._log_info("  Change provider from 'environment-variable' to 'text-file' or other")
+                self._log_info("")
+                self._log_info("For this lab, default credentials (admin/admin) will work fine!")
+                self._log_info("")
         else:
-            self.logger.warning(
-                "No secrets group configured. Using default credentials (admin/admin)"
+            self._log_info(
+                "No secrets group configured for this device. "
+                "Using default credentials (admin/admin)"
             )
+            self._log_info(
+                "Tip: Assign a secrets group in the device settings for production use"
+            )
+
+        # Log final credential status (without revealing passwords)
+        if username == "admin" and password == "admin":
+            self._log_info("Using default credentials: admin/admin")
+        else:
+            self._log_info(f"Using credentials from secrets: {username}/<hidden>")
 
         return username, password
 
     def _get_intended_config(self, device):
         """Get intended configuration from Golden Config plugin."""
-        self.logger.info("-" * 80)
-        self.logger.info("Generating intended configuration from Golden Config...")
+        self._log_info("-" * 80)
+        self._log_info("Generating intended configuration from Golden Config...")
 
         try:
             # Import Golden Config models
@@ -165,16 +238,21 @@ class ProvisionDevice(Job):
                 golden_config = GoldenConfig.objects.get(device=device)
                 
                 if golden_config.intended_config:
+                    # Get last update timestamp if available
+                    last_update = getattr(golden_config, 'intended_last_success_date', None)
+                    if not last_update:
+                        last_update = getattr(golden_config, 'last_modified', 'unknown')
+                    
                     self.logger.success(
                         f"Found existing intended config "
-                        f"(last updated: {golden_config.intended_last_success})"
+                        f"(last updated: {last_update})"
                     )
                     
                     # Log first few lines of config
                     config_preview = "\n".join(
                         golden_config.intended_config.split("\n")[:10]
                     )
-                    self.logger.info(f"Config preview:\n{config_preview}\n...")
+                    self._log_info(f"Config preview:\n{config_preview}\n...")
                     
                     return golden_config.intended_config
                 else:
@@ -188,14 +266,14 @@ class ProvisionDevice(Job):
                 )
 
             # Try to generate config using Golden Config plugin
-            self.logger.info("Attempting to generate config using Golden Config plugin...")
+            self._log_info("Attempting to generate config using Golden Config plugin...")
             
             try:
                 # Import the task
                 from nautobot_golden_config.utilities.helper import get_job_filter
                 from nautobot_golden_config.nornir_plays.config_intended import config_intended
                 
-                self.logger.info("Generating new intended configuration...")
+                self._log_info("Generating new intended configuration...")
                 
                 # This would normally be done through the Golden Config job
                 # For now, we'll inform the user to generate it first
@@ -219,16 +297,16 @@ class ProvisionDevice(Job):
 
     def _deploy_config(self, device, config, username, password, dry_run, replace, commit):
         """Deploy configuration to device using NAPALM."""
-        self.logger.info("-" * 80)
-        self.logger.info("Connecting to device and deploying configuration...")
+        self._log_info("-" * 80)
+        self._log_info("Connecting to device and deploying configuration...")
 
         device_ip = str(device.primary_ip4.address.ip)
         driver_name = device.platform.napalm_driver
 
-        self.logger.info(f"Device IP: {device_ip}")
-        self.logger.info(f"NAPALM Driver: {driver_name}")
-        self.logger.info(f"Mode: {'DRY RUN' if dry_run else 'LIVE DEPLOYMENT'}")
-        self.logger.info(f"Method: {'REPLACE' if replace else 'MERGE'}")
+        self._log_info(f"Device IP: {device_ip}")
+        self._log_info(f"NAPALM Driver: {driver_name}")
+        self._log_info(f"Mode: {'DRY RUN' if dry_run else 'LIVE DEPLOYMENT'}")
+        self._log_info(f"Method: {'REPLACE' if replace else 'MERGE'}")
 
         # Parse NAPALM optional args
         optional_args = device.platform.napalm_args or {}
@@ -247,33 +325,33 @@ class ProvisionDevice(Job):
                 optional_args=optional_args
             )
 
-            self.logger.info(f"Opening connection to {device_ip}...")
+            self._log_info(f"Opening connection to {device_ip}...")
             napalm_device.open()
             self.logger.success(f"Connected to {device.name}")
 
             # Load configuration
-            self.logger.info("Loading configuration to device...")
+            self._log_info("Loading configuration to device...")
             
             if replace:
                 self.logger.warning("REPLACE mode: Entire configuration will be replaced!")
                 napalm_device.load_replace_candidate(config=config)
             else:
-                self.logger.info("MERGE mode: Configuration will be merged with existing")
+                self._log_info("MERGE mode: Configuration will be merged with existing")
                 napalm_device.load_merge_candidate(config=config)
 
             self.logger.success("Configuration loaded successfully")
 
             # Get configuration diff
-            self.logger.info("Generating configuration diff...")
+            self._log_info("Generating configuration diff...")
             diff = napalm_device.compare_config()
 
             if diff:
-                self.logger.info("Configuration changes:")
-                self.logger.info("-" * 80)
-                self.logger.info(diff)
-                self.logger.info("-" * 80)
+                self._log_info("Configuration changes:")
+                self._log_info("-" * 80)
+                self._log_info(diff)
+                self._log_info("-" * 80)
             else:
-                self.logger.info("No configuration changes detected")
+                self._log_info("No configuration changes detected")
                 napalm_device.discard_config()
                 return
 
@@ -281,19 +359,19 @@ class ProvisionDevice(Job):
             if dry_run:
                 self.logger.warning("DRY RUN mode: Discarding configuration changes")
                 napalm_device.discard_config()
-                self.logger.info(
+                self._log_info(
                     "To apply these changes, run again with 'Dry run mode' unchecked"
                 )
             else:
                 if commit:
-                    self.logger.info("Committing configuration changes...")
+                    self._log_info("Committing configuration changes...")
                     napalm_device.commit_config()
                     self.logger.success(
                         "Configuration committed successfully and saved to startup-config"
                     )
 
                     # Verify configuration was applied
-                    self.logger.info("Verifying configuration...")
+                    self._log_info("Verifying configuration...")
                     facts = napalm_device.get_facts()
                     self.logger.success(
                         f"Device {facts.get('hostname')} is running with new configuration"
@@ -322,9 +400,9 @@ class ProvisionDevice(Job):
 
             if napalm_device:
                 try:
-                    self.logger.info("Attempting to discard configuration changes...")
+                    self._log_info("Attempting to discard configuration changes...")
                     napalm_device.discard_config()
-                    self.logger.info("Configuration changes discarded")
+                    self._log_info("Configuration changes discarded")
                 except Exception as discard_error:
                     self.logger.error(f"Could not discard config: {discard_error}")
 
@@ -332,7 +410,7 @@ class ProvisionDevice(Job):
             if napalm_device:
                 try:
                     napalm_device.close()
-                    self.logger.info("Connection closed")
+                    self._log_info("Connection closed")
                 except Exception as close_error:
                     self.logger.warning(f"Error closing connection: {close_error}")
 
