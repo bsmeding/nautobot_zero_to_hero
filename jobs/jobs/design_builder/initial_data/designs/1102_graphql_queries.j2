@@ -26,3 +26,94 @@ graphql_queries:
         }
       }
     variables: {}
+
+  # Golden Config Query (for device configuration templates)
+  - "!create_or_update:name": "GoldenConfig"
+    query: |
+      query ($device_id: ID!) {
+        device(id: $device_id) {
+          hostname:name
+          position
+          serial
+          primary_ip4 {
+            id
+            address
+            dns_name
+            description
+            interface_assignments {
+              id
+              interface {
+                id
+                name
+                enabled
+              }
+            }
+            primary_ip4_for {
+              id
+              name
+            }
+          }
+          tenant {
+            name
+          }
+          tags {
+            name
+          }
+          role {
+            name
+          }
+          platform {
+            name
+            manufacturer {
+              name
+            }
+            network_driver
+            napalm_driver
+          }
+          location {
+            name
+            parent {
+              name
+            }
+          }
+          interfaces {
+            description
+            mac_address
+            enabled
+            name
+            ip_addresses {
+              address
+              tags {
+                id
+              }
+            }
+            connected_circuit_termination {
+              circuit {
+                cid
+                commit_rate
+                provider {
+                  name
+                }
+              }
+            }
+            tagged_vlans {
+              id
+            }
+            untagged_vlan {
+              id
+            }
+            cable {
+              termination_a_type
+              status {
+                name
+              }
+              color
+            }
+            tags {
+              id
+            }
+          }
+          config_context
+        }
+      }
+    variables: {}

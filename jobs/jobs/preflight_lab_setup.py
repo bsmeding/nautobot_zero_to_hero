@@ -154,7 +154,8 @@ class PreflightLabSetup(Job):
             # Create config contexts for devices
             self._create_config_contexts(site, active_status)
 
-            # Skipping Golden Config setup per user request
+            # Create GraphQL queries
+            self._create_graphql_queries()
 
             self.logger.info("Pre-flight lab setup completed successfully!")
 
@@ -1123,6 +1124,116 @@ class PreflightLabSetup(Job):
         access_context.locations.add(site)
 
         self.logger.info("Config contexts created and associated successfully")
+
+    def _create_graphql_queries(self):
+        """Create GraphQL queries for Golden Config and other integrations."""
+        from nautobot.extras.models import GraphQLQuery
+        
+        # GoldenConfig GraphQL Query
+        golden_config_query = """query ($device_id: ID!) {
+  device(id: $device_id) {
+    hostname:name
+    position
+    serial
+    primary_ip4 {
+      id
+      address
+      dns_name
+      description
+      interface_assignments {
+        id
+        interface {
+          id
+          name
+          enabled
+        }
+      }
+      primary_ip4_for {
+        id
+        name
+      }
+    }
+    tenant {
+      name
+    }
+    tags {
+      name
+    }
+    role {
+      name
+    }
+    platform {
+      name
+      manufacturer {
+        name
+      }
+      network_driver
+      napalm_driver
+    }
+    location {
+      name
+      parent {
+        name
+      }
+    }
+    interfaces {
+      description
+      mac_address
+      enabled
+      name
+      ip_addresses {
+        address
+        tags {
+          id
+        }
+      }
+      connected_circuit_termination {
+        circuit {
+          cid
+          commit_rate
+          provider {
+            name
+          }
+        }
+      }
+      tagged_vlans {
+        id
+      }
+      untagged_vlan {
+        id
+      }
+      cable {
+        termination_a_type
+        status {
+          name
+        }
+        color
+      }
+      tags {
+        id
+      }
+    }
+    config_context
+  }
+}"""
+        
+        # Create or update GoldenConfig query
+        golden_config, created = GraphQLQuery.objects.get_or_create(
+            name="GoldenConfig",
+            defaults={
+                "query": golden_config_query,
+            }
+        )
+        
+        if created:
+            self.logger.info("Created GraphQL query: GoldenConfig")
+        else:
+            # Update query if it exists
+            golden_config.query = golden_config_query
+            golden_config.save()
+            self.logger.info("Updated GraphQL query: GoldenConfig")
+        
+        self.logger.info("GraphQL queries created successfully")
 
 
 register_jobs(PreflightLabSetup)
