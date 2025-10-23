@@ -1238,9 +1238,13 @@ class PreflightLabSetup(Job):
       }
       tagged_vlans {
         id
+        vid
+        name
       }
       untagged_vlan {
         id
+        vid
+        name
       }
       cable {
         termination_a_type

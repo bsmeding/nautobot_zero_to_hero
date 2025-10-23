@@ -186,15 +186,44 @@ class InterfaceJobHookReceiver(JobHookReceiver):
         else:
             commands.append("no description")
         
-        # Enable or disable interface
-        if interface.enabled:
-            commands.append("no shutdown")
-        else:
-            commands.append("shutdown")
+        # Configure switchport mode and VLANs (for Arista)
+        if interface.mode:
+            if interface.mode in ['access', 'tagged', 'tagged-all']:
+                commands.append("switchport")  # Enable switchport mode
+                
+                if interface.mode == 'access':
+                    commands.append("switchport mode access")
+                    # Set access VLAN
+                    if interface.untagged_vlan:
+                        commands.append(f"switchport access vlan {interface.untagged_vlan.vid}")
+                
+                elif interface.mode == 'tagged':
+                    commands.append("switchport mode trunk")
+                    # Set allowed VLANs
+                    if interface.tagged_vlans.exists():
+                        vlan_list = ','.join(str(v.vid) for v in interface.tagged_vlans.all())
+                        commands.append(f"switchport trunk allowed vlan {vlan_list}")
+                
+                elif interface.mode == 'tagged-all':
+                    commands.append("switchport mode trunk")
+                    commands.append("switchport trunk allowed vlan all")
         
         # Add MTU if specified and not default
         if interface.mtu and interface.mtu != 1500:
             commands.append(f"mtu {interface.mtu}")
+        
+        # Configure IP addresses (if any)
+        if interface.ip_addresses.exists():
+            for ip_addr in interface.ip_addresses.all():
+                # Extract IP with CIDR notation
+                ip_with_mask = str(ip_addr.address)
+                commands.append(f"ip address {ip_with_mask}")
+        
+        # Enable or disable interface (do this last)
+        if interface.enabled:
+            commands.append("no shutdown")
+        else:
+            commands.append("shutdown")
         
         return commands
 

@@ -427,10 +427,11 @@ EOF
     # Set as default handler for ssh:// links
     xdg-mime default ssh-handler.desktop x-scheme-handler/ssh
     
-    echo "[INFO] ssh:// protocol handler configured!"
-    echo "  You can now click ssh://admin@access1 links to open SSH in terminal"
-    echo ""
-    echo "[INFO] Desktop Environment Usage:"
+echo "[INFO] ssh:// protocol handler configured!"
+echo "  You can now click ssh://admin@access1 links to open SSH in terminal"
+echo ""
+
+echo "[INFO] Desktop Environment Usage:"
     echo "  ✅ System configured for CONSOLE LOGIN (no graphical login)"
     echo "  ✅ This prevents 'Failed to start session' errors"
     echo ""
@@ -455,15 +456,50 @@ EOF
     fi
     echo ""
 else
-    echo ""
-    echo "[INFO] Desktop environment not installed (INSTALL_DESKTOP=false)"
-    if [ "$IS_WSL" = "true" ]; then
-        echo "  ✅ Recommended for WSL: Access Nautobot from Windows browser"
-        echo "  To force install desktop: INSTALL_DESKTOP=true bash install.sh"
+echo ""
+echo "[INFO] Desktop environment not installed (INSTALL_DESKTOP=false)"
+if [ "$IS_WSL" = "true" ]; then
+    echo "  ✅ Recommended for WSL: Access Nautobot from Windows browser"
+    echo "  To force install desktop: INSTALL_DESKTOP=true bash install.sh"
+else
+    echo "  To install later, run: INSTALL_DESKTOP=true bash install.sh"
+fi
+echo ""
+
+# Configure automatic virtual environment activation
+echo "[INFO] Configuring automatic virtual environment activation..."
+BASH_PROFILE="$HOME/.bashrc"
+
+# Check if cd function already exists
+if grep -q "function cd()" "$BASH_PROFILE" 2>/dev/null; then
+    echo "  ✅ cd() function already configured in .bashrc"
+else
+    # Add cd function to .bashrc
+    cat >> "$BASH_PROFILE" << 'CDEOF'
+
+# Auto-activate virtual environments when cd'ing into directories
+cd() {
+    builtin cd "$@"
+    
+    if [[ -z "$VIRTUAL_ENV" ]]; then
+        if [[ -d ./.env ]]; then
+            source ./.env/bin/activate
+        elif [[ -d ./.venv ]]; then
+            source ./.venv/bin/activate
+        fi
     else
-        echo "  To install later, run: INSTALL_DESKTOP=true bash install.sh"
+        parentdir="$(dirname "$VIRTUAL_ENV")"
+        if [[ "$PWD"/ != "$parentdir"/* ]]; then
+            unset VIRTUAL_ENV
+        fi
     fi
-    echo ""
+}
+CDEOF
+
+    echo "  ✅ Added cd() function to .bashrc for automatic virtual environment activation"
+    echo "  💡 This will automatically activate .env/ or .venv/ when you cd into directories"
+    echo "  💡 And deactivate when you leave those directories"
+fi
 fi
 
 echo "[DONE] Installation complete!"
