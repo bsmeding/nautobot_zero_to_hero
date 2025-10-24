@@ -1,0 +1,13 @@
+services:
+  nautobot:
+    platform: linux/amd64
+  nautobot-init:
+    platform: linux/amd64
+  celery-worker-1:
+    platform: linux/amd64
+  celery-beat:
+    platform: linux/amd64
+  postgres:
+    platform: linux/amd64
+  redis:
+    platform: linux/amd64

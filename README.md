@@ -135,6 +135,9 @@ EOF
 # Start the complete Nautobot stack
 docker compose up -d
 
+# If you are on Apple Silicon (M1, M2, M3, M4) start with
+docker compose -f docker-compose.yml -f docker-compose.override.amd64.yml up -d
+
 # Check status
 docker compose ps
 ```
