@@ -131,6 +131,8 @@ EOF
 
 ### 2. Start Nautobot
 
+Please allow database changes occur when starting for first time this can take more than 5 minutes!
+
 ```bash
 # Start the complete Nautobot stack
 docker compose up -d
