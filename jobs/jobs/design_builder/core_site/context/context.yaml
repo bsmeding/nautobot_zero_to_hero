@@ -1,0 +1,100 @@
+---
+# Core Router Loopbacks
+core_1_loopback: "{{ site_prefix | network_offset('0.0.0.1/32') }}"
+core_2_loopback: "{{ site_prefix | network_offset('0.0.1.1/32') }}"
+
+# Additional Router Loopback
+router_1_loopback: "{{ site_prefix | network_offset('0.0.1.2/32') }}"
+
+# Spine Loopbacks
+spine_1_loopback: "{{ site_prefix | network_offset('0.0.2.1/32') }}"
+spine_2_loopback: "{{ site_prefix | network_offset('0.0.2.2/32') }}"
+spine_3_loopback: "{{ site_prefix | network_offset('0.0.2.3/32') }}"
+spine_4_loopback: "{{ site_prefix | network_offset('0.0.2.4/32') }}"
+
+# Leaf Loopbacks
+leaf_1_loopback: "{{ site_prefix | network_offset('0.0.3.1/32') }}"
+leaf_2_loopback: "{{ site_prefix | network_offset('0.0.3.2/32') }}"
+leaf_3_loopback: "{{ site_prefix | network_offset('0.0.3.3/32') }}"
+leaf_4_loopback: "{{ site_prefix | network_offset('0.0.3.4/32') }}"
+leaf_5_loopback: "{{ site_prefix | network_offset('0.0.3.5/32') }}"
+leaf_6_loopback: "{{ site_prefix | network_offset('0.0.3.6/32') }}"
+leaf_7_loopback: "{{ site_prefix | network_offset('0.0.3.7/32') }}"
+leaf_8_loopback: "{{ site_prefix | network_offset('0.0.3.8/32') }}"
+
+# Core Router Interface IPs (Ethernet1/1-1/4)
+core_1_e1_1: "{{ site_prefix | network_offset('1.0.0.1/31') }}"
+core_1_e1_2: "{{ site_prefix | network_offset('1.0.0.3/31') }}"
+core_1_e1_3: "{{ site_prefix | network_offset('1.0.0.5/31') }}"
+core_1_e1_4: "{{ site_prefix | network_offset('1.0.0.7/31') }}"
+
+core_2_e1_1: "{{ site_prefix | network_offset('1.0.0.9/31') }}"
+core_2_e1_2: "{{ site_prefix | network_offset('1.0.0.11/31') }}"
+core_2_e1_3: "{{ site_prefix | network_offset('1.0.0.13/31') }}"
+core_2_e1_4: "{{ site_prefix | network_offset('1.0.0.15/31') }}"
+
+# Router Interface IPs (Ethernet1/1-1/2)
+router_1_e1_1: "{{ site_prefix | network_offset('1.0.0.17/31') }}"
+router_1_e1_2: "{{ site_prefix | network_offset('1.0.0.19/31') }}"
+
+# Spine Interface IPs (Ethernet1/1-1/8)
+spine_1_e1_1: "{{ site_prefix | network_offset('2.0.0.1/31') }}"
+spine_1_e1_2: "{{ site_prefix | network_offset('2.0.0.3/31') }}"
+spine_1_e1_3: "{{ site_prefix | network_offset('2.0.0.5/31') }}"
+spine_1_e1_4: "{{ site_prefix | network_offset('2.0.0.7/31') }}"
+spine_1_e1_5: "{{ site_prefix | network_offset('2.0.0.9/31') }}"
+spine_1_e1_6: "{{ site_prefix | network_offset('2.0.0.11/31') }}"
+spine_1_e1_7: "{{ site_prefix | network_offset('2.0.0.13/31') }}"
+spine_1_e1_8: "{{ site_prefix | network_offset('2.0.0.15/31') }}"
+
+spine_2_e1_1: "{{ site_prefix | network_offset('2.0.0.17/31') }}"
+spine_2_e1_2: "{{ site_prefix | network_offset('2.0.0.19/31') }}"
+spine_2_e1_3: "{{ site_prefix | network_offset('2.0.0.21/31') }}"
+spine_2_e1_4: "{{ site_prefix | network_offset('2.0.0.23/31') }}"
+spine_2_e1_5: "{{ site_prefix | network_offset('2.0.0.25/31') }}"
+spine_2_e1_6: "{{ site_prefix | network_offset('2.0.0.27/31') }}"
+spine_2_e1_7: "{{ site_prefix | network_offset('2.0.0.29/31') }}"
+spine_2_e1_8: "{{ site_prefix | network_offset('2.0.0.31/31') }}"
+
+spine_3_e1_1: "{{ site_prefix | network_offset('2.0.0.33/31') }}"
+spine_3_e1_2: "{{ site_prefix | network_offset('2.0.0.35/31') }}"
+spine_3_e1_3: "{{ site_prefix | network_offset('2.0.0.37/31') }}"
+spine_3_e1_4: "{{ site_prefix | network_offset('2.0.0.39/31') }}"
+spine_3_e1_5: "{{ site_prefix | network_offset('2.0.0.41/31') }}"
+spine_3_e1_6: "{{ site_prefix | network_offset('2.0.0.43/31') }}"
+spine_3_e1_7: "{{ site_prefix | network_offset('2.0.0.45/31') }}"
+spine_3_e1_8: "{{ site_prefix | network_offset('2.0.0.47/31') }}"
+
+spine_4_e1_1: "{{ site_prefix | network_offset('2.0.0.49/31') }}"
+spine_4_e1_2: "{{ site_prefix | network_offset('2.0.0.51/31') }}"
+spine_4_e1_3: "{{ site_prefix | network_offset('2.0.0.53/31') }}"
+spine_4_e1_4: "{{ site_prefix | network_offset('2.0.0.55/31') }}"
+spine_4_e1_5: "{{ site_prefix | network_offset('2.0.0.57/31') }}"
+spine_4_e1_6: "{{ site_prefix | network_offset('2.0.0.59/31') }}"
+spine_4_e1_7: "{{ site_prefix | network_offset('2.0.0.61/31') }}"
+spine_4_e1_8: "{{ site_prefix | network_offset('2.0.0.63/31') }}"
+
+# Leaf Interface IPs (Ethernet1/1-1/2 for uplinks, rest for access)
+leaf_1_e1_1: "{{ site_prefix | network_offset('3.0.0.1/31') }}"
+leaf_1_e1_2: "{{ site_prefix | network_offset('3.0.0.3/31') }}"
+
+leaf_2_e1_1: "{{ site_prefix | network_offset('3.0.0.5/31') }}"
+leaf_2_e1_2: "{{ site_prefix | network_offset('3.0.0.7/31') }}"
+
+leaf_3_e1_1: "{{ site_prefix | network_offset('3.0.0.9/31') }}"
+leaf_3_e1_2: "{{ site_prefix | network_offset('3.0.0.11/31') }}"
+
+leaf_4_e1_1: "{{ site_prefix | network_offset('3.0.0.13/31') }}"
+leaf_4_e1_2: "{{ site_prefix | network_offset('3.0.0.15/31') }}"
+
+leaf_5_e1_1: "{{ site_prefix | network_offset('3.0.0.17/31') }}"
+leaf_5_e1_2: "{{ site_prefix | network_offset('3.0.0.19/31') }}"
+
+leaf_6_e1_1: "{{ site_prefix | network_offset('3.0.0.21/31') }}"
+leaf_6_e1_2: "{{ site_prefix | network_offset('3.0.0.23/31') }}"
+
+leaf_7_e1_1: "{{ site_prefix | network_offset('3.0.0.25/31') }}"
+leaf_7_e1_2: "{{ site_prefix | network_offset('3.0.0.27/31') }}"
+
+leaf_8_e1_1: "{{ site_prefix | network_offset('3.0.0.29/31') }}"
+leaf_8_e1_2: "{{ site_prefix | network_offset('3.0.0.31/31') }}"

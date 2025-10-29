@@ -53,8 +53,8 @@ def main() -> None:
     # Use the reusable function to configure the interface
     configure_interface(
         node=node,
-        interface_name="Management0",
-        ip_address="172.20.20.11/24",
+        interface_name="Loopback0",
+        ip_address="172.10.10.11/24",
         enabled=True,
         save_config=True,
     )

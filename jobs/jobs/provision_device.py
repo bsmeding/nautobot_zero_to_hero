@@ -7,7 +7,7 @@ This job provisions a device by:
 3. Loading the startup config to running config
 """
 
-from nautobot.apps.jobs import Job, ObjectVar, BooleanVar, register_jobs
+from nautobot.apps.jobs import Job, ObjectVar, BooleanVar, register_jobs, JobButtonReceiver
 from nautobot.dcim.models import Device
 from napalm import get_network_driver
 from napalm.base.exceptions import ConnectionException, CommitError, ReplaceConfigException
@@ -16,92 +16,8 @@ import traceback
 name = "Device Provisioning"
 
 
-class ProvisionDevice(Job):
-    """
-    Provision a device with its intended configuration from Golden Config.
-    
-    This job:
-    1. Connects to the device using NAPALM
-    2. Generates intended configuration from Golden Config plugin
-    3. Loads the configuration to the device
-    4. Commits the changes (saves to startup-config)
-    5. Optionally reloads/applies the configuration
-    
-    Can be triggered manually or via a Job Button on device pages.
-    """
-
-    class Meta:
-        name = "Provision Device"
-        description = "Generate intended config from Golden Config and deploy to device"
-        has_sensitive_variables = True
-        field_order = ["device", "dry_run", "replace_config", "commit_changes", "show_debug"]
-
-    device = ObjectVar(
-        description="Device to provision",
-        model=Device,
-        required=True,
-    )
-
-    dry_run = BooleanVar(
-        description="Dry run mode - show config diff without committing",
-        default=True,
-        required=False,
-    )
-
-    replace_config = BooleanVar(
-        description="Replace entire config (use with caution!)",
-        default=False,
-        required=False,
-    )
-
-    commit_changes = BooleanVar(
-        description="Commit changes to startup-config",
-        default=True,
-        required=False,
-    )
-    
-    show_debug = BooleanVar(
-        description="Show detailed debug/info logs",
-        default=False,
-        required=False,
-    )
-
-    def run(self, device, dry_run=True, replace_config=False, commit_changes=True, show_debug=False):
-        """Main execution method."""
-        # Store debug flag for use in helper methods
-        self._show_debug = show_debug
-        
-        self._log_info("=" * 80)
-        self._log_info(f"Starting provisioning for device: {device.name}")
-        self._log_info("=" * 80)
-
-        # Validate device has required attributes
-        if not self._validate_device(device):
-            return
-
-        # Get device credentials
-        username, password = self._get_credentials(device)
-
-        # Get intended configuration from Golden Config
-        intended_config = self._get_intended_config(device)
-        if not intended_config:
-            self.logger.error("No intended configuration available. Cannot proceed.")
-            return
-
-        # Connect to device and deploy configuration
-        self._deploy_config(
-            device, 
-            intended_config, 
-            username, 
-            password, 
-            dry_run, 
-            replace_config,
-            commit_changes
-        )
-
-        self._log_info("=" * 80)
-        self.logger.success(f"Provisioning completed for {device.name}")
-        self._log_info("=" * 80)
+class ProvisionDeviceMixin:
+    """Shared mixin with provisioning logic for both Job and JobButtonReceiver."""
 
     def _log_info(self, message):
         """Log info message only if debug mode is enabled."""
@@ -414,6 +330,137 @@ class ProvisionDevice(Job):
                 except Exception as close_error:
                     self.logger.warning(f"Error closing connection: {close_error}")
 
+    def _provision_device(self, device, dry_run=True, replace_config=False, commit_changes=True, show_debug=False):
+        """Core provisioning logic shared between Job and JobButtonReceiver."""
+        # Store debug flag for use in helper methods
+        self._show_debug = show_debug
+        
+        self._log_info("=" * 80)
+        self._log_info(f"Starting provisioning for device: {device.name}")
+        if hasattr(self, 'user') and self.user:
+            self._log_info(f"Triggered by user: {self.user.username}")
+        self._log_info("=" * 80)
 
-register_jobs(ProvisionDevice)
+        # Validate device has required attributes
+        if not self._validate_device(device):
+            return
+
+        # Get device credentials
+        username, password = self._get_credentials(device)
+
+        # Get intended configuration from Golden Config
+        intended_config = self._get_intended_config(device)
+        if not intended_config:
+            self.logger.error("No intended configuration available. Cannot proceed.")
+            return
+
+        # Connect to device and deploy configuration
+        self._deploy_config(
+            device, 
+            intended_config, 
+            username, 
+            password, 
+            dry_run, 
+            replace_config,
+            commit_changes
+        )
+
+        self._log_info("=" * 80)
+        self.logger.success(f"Provisioning completed for {device.name}")
+        self._log_info("=" * 80)
+
+
+class ProvisionDevice(Job, ProvisionDeviceMixin):
+    """
+    Provision a device with its intended configuration from Golden Config.
+    
+    This job:
+    1. Connects to the device using NAPALM
+    2. Generates intended configuration from Golden Config plugin
+    3. Loads the configuration to the device
+    4. Commits the changes (saves to startup-config)
+    5. Optionally reloads/applies the configuration
+    
+    Can be triggered manually or via a Job Button on device pages.
+    """
+
+    class Meta:
+        name = "Provision Device"
+        description = "Generate intended config from Golden Config and deploy to device"
+        has_sensitive_variables = True
+        field_order = ["device", "dry_run", "replace_config", "commit_changes", "show_debug"]
+
+    device = ObjectVar(
+        description="Device to provision",
+        model=Device,
+        required=True,
+    )
+
+    dry_run = BooleanVar(
+        description="Dry run mode - show config diff without committing",
+        default=True,
+        required=False,
+    )
+
+    replace_config = BooleanVar(
+        description="Replace entire config (use with caution!)",
+        default=False,
+        required=False,
+    )
+
+    commit_changes = BooleanVar(
+        description="Commit changes to startup-config",
+        default=True,
+        required=False,
+    )
+    
+    show_debug = BooleanVar(
+        description="Show detailed debug/info logs",
+        default=False,
+        required=False,
+    )
+
+    def run(self, device, dry_run=True, replace_config=False, commit_changes=True, show_debug=False):
+        """Main execution method."""
+        self._provision_device(device, dry_run, replace_config, commit_changes, show_debug)
+
+
+
+class ProvisionDeviceButton(JobButtonReceiver, ProvisionDeviceMixin):
+    """
+    Provision a device with its intended configuration from Golden Config via a Job Button.
+    Requires approval before execution.
+    """
+
+    class Meta:
+        name = "Provision Device (Button)"
+        description = "Generate intended config from Golden Config and deploy to device via button click. Requires approval."
+        has_sensitive_variables = False
+        approval_required = True
+
+    def receive_job_button(self, obj):
+        """
+        Execute provisioning when button is clicked on a device.
+        """
+        if not isinstance(obj, Device):
+            self.logger.error(
+                f"JobButtonReceiver called with invalid object type: {type(obj).__name__}. "
+                f"Expected Device, got {type(obj).__name__}"
+            )
+            raise ValueError(f"Expected Device object, got {type(obj).__name__}")
+
+        device = obj
+
+        # Sensible defaults for button-triggered provisioning
+        dry_run = False
+        replace_config = False
+        commit_changes = True
+        show_debug = True
+
+        # Use the shared provisioning logic from the mixin
+        self._provision_device(device, dry_run, replace_config, commit_changes, show_debug)
+
+
+register_jobs(ProvisionDevice, ProvisionDeviceButton)
+
 

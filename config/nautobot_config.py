@@ -512,11 +512,11 @@ PLUGINS = [
     # "nautobot_device_lifecycle_mgmt",
     # "nautobot_device_onboarding",
     # "nautobot_firewall_models",
-    # "nautobot_floor_plan",
+    "nautobot_floor_plan",
     "nautobot_plugin_nornir",
     # "nautobot_secrets_providers",
     # "nautobot_ssot",
-    # "nautobot_topology_views",
+    "nautobot_ui_plugin",
 ]
 
 # Plugins configuration settings. These settings are used by various plugins that the user may have installed.

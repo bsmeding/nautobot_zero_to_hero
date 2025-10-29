@@ -158,6 +158,9 @@ services:
       - NAUTOBOT_CONFIG=/opt/nautobot/nautobot_config.py
       - NAUTOBOT_JOBS_ROOT=/opt/nautobot/jobs
       - PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+      - NAUTOBOT_NAPALM_TIMEOUT=5
+      - NAUTOBOT_NAPALM_USERNAME=admin
+      - NAUTOBOT_NAPALM_PASSWORD=admin
     networks:
       - nautobot
       - clab
