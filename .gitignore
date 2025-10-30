@@ -15,6 +15,9 @@ templates/*
 *.log
 logs/
 
+# Local AI container development
+AI/*
+
 # Python
 __pycache__/
 *.py[cod]
