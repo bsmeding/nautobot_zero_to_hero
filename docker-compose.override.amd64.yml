@@ -1,3 +1,8 @@
+# DEPRECATED: This file is no longer needed.
+# ARM64 images are now available on Docker Hub, so Apple Silicon (M1, M2, M3, M4) users
+# can use the standard `docker compose up -d` command without this override file.
+# This file is kept for backward compatibility but is not required.
+
 services:
   nautobot:
     platform: linux/amd64

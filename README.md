@@ -137,12 +137,11 @@ Please allow database changes occur when starting for first time this can take m
 # Start the complete Nautobot stack
 docker compose up -d
 
-# If you are on Apple Silicon (M1, M2, M3, M4) start with
-docker compose -f docker-compose.yml -f docker-compose.override.amd64.yml up -d
-
 # Check status
 docker compose ps
 ```
+
+> **Note:** ARM64 images are now available on Docker Hub, so Apple Silicon (M1, M2, M3, M4) users can use the standard `docker compose up -d` command. The `docker-compose.override.amd64.yml` file is no longer needed.
 
 ### 3. Access Nautobot
 
