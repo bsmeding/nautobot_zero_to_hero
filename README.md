@@ -52,7 +52,7 @@ nautobot_zero_to_hero/
 
 ## 🚀 Quick Start
 
-> 📖 **Detailed Installation Guide**: See [`INSTALLATION.md`](INSTALLATION.md) for comprehensive installation options and troubleshooting.
+> 📖 **Detailed Installation Guide**: See [`INSTALLATION.md`](docs/INSTALLATION.md) for comprehensive installation options and troubleshooting.
 
 ### Prerequisites
 
