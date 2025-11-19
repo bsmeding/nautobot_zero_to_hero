@@ -1,6 +1,7 @@
 # Installation Guide - Nautobot Zero to Hero Lab
 
 ## Quick Installation Options
+!Please use a linux virtual machine for the full installation
 
 ### 🚀 Option 1: Full Automated Install (Recommended)
 
@@ -322,7 +323,7 @@ After successful installation:
 4. ✅ Access Nautobot UI at http://nautobotlab.dev:8080
 5. ✅ Start automating!
 
-See main [README.md](README.md) for detailed usage instructions.
+See main [README.md](../README.md) for detailed usage instructions.
 
 ---
 
