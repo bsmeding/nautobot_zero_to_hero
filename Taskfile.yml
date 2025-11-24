@@ -1,0 +1,28 @@
+# https://taskfile.dev
+
+version: "3"
+
+vars:
+  UV_PATH: $HOME/.local/bin/uv
+
+includes:
+  install: taskfiles/Taskfile_{{OS}}.yml
+
+tasks:
+  default:
+    # desc: show tasks
+    cmd: task -l
+    silent: true
+
+  uv:sync:
+    desc: Initialize the python environment
+    deps:
+      - install:uv
+      - install:uv:completion
+    cmds:
+      - "{{.UV_PATH}} sync"
+
+  uv:clean:
+    desc: Remove the virtual environment
+    cmds:
+      - rm -rf .venv

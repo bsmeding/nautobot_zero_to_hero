@@ -1,0 +1,25 @@
+version: 3
+
+tasks:
+  uv:native:
+    desc: install uv via curl
+    status:
+      - test -f {{.UV_PATH}}
+    cmds:
+      - curl -LsSf https://astral.sh/uv/install.sh | sh
+      - task: uv:completion
+
+  uv:brew:
+    desc: install uv via brew
+    status:
+      - test -f /opt/homebrew/bin/uv
+    cmds:
+      - brew install uv
+
+  uv:completion:
+    desc: install uv bash completion
+    status:
+      - grep -q 'uv generate-shell-completion zsh' ~/.zshrc
+    cmds:
+      - echo 'eval "$(uv generate-shell-completion zsh)"' >> ~/.zshrc
+      - echo 'eval "$(uvx --generate-shell-completion zsh)"' >> ~/.zshrc
