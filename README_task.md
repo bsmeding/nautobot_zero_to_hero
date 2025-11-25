@@ -10,10 +10,10 @@
 ## Install all
 
 ```bash
-    task install:all
+    task all
 ```
 
-Details can be obtained using `task --summary install:all`.
+Details can be obtained using `task --summary all`.
 
 ## Dry run
 

@@ -23,3 +23,10 @@ tasks:
     cmds:
       - echo 'eval "$(uv generate-shell-completion zsh)"' >> ~/.zshrc
       - echo 'eval "$(uvx --generate-shell-completion zsh)"' >> ~/.zshrc
+
+  uv:sync:
+    desc: Initialize the python environment
+    deps:
+      - uv
+    cmds:
+      - "{{.UV_PATH}} sync"

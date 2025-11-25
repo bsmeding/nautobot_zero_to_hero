@@ -6,21 +6,15 @@ vars:
   UV_PATH: $HOME/.local/bin/uv
 
 includes:
-  install: taskfiles/Taskfile_{{OS}}.yml
+  install:
+    taskfile: taskfiles/Taskfile_{{OS}}.yml
+    flatten: true
 
 tasks:
   default:
     # desc: show tasks
     cmd: task -l
     silent: true
-
-  uv:sync:
-    desc: Initialize the python environment
-    deps:
-      - install:uv
-      - install:uv:completion
-    cmds:
-      - "{{.UV_PATH}} sync"
 
   uv:clean:
     desc: Remove the virtual environment

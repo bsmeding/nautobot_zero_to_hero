@@ -27,9 +27,7 @@ tasks:
       and setting the /etc/hosts and ssh config for smooth lab access
     deps:
       - packages
-      - uv
     cmds:
-      - task: uv:completion
       - task: docker
       - task: containerlab
       - task: set:hosts
@@ -44,6 +42,7 @@ tasks:
       - test -f {{.UV_PATH}}
     cmds:
       - curl -LsSf https://astral.sh/uv/install.sh | sh
+      - task: uv:completion
 
   uv:completion:
     desc: install uv bash completion
@@ -54,7 +53,9 @@ tasks:
       - echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc
 
   uv:sync:
-    desc: sync uv environment
+    desc: Initialize the python environment
+    deps:
+      - uv
     cmds:
       - "{{.UV_PATH}} sync"
 
