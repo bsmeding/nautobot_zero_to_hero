@@ -1,0 +1,279 @@
+version: 3
+
+vars:
+  UV_PATH: $HOME/.local/bin/uv
+  LINUX_TYPE:
+    sh: |
+      . /etc/os-release
+      echo $ID
+  IS_WSL:
+    sh: |
+      if grep -qi microsoft /proc/version 2>/dev/null; then
+        echo "true"
+      else
+        echo "false"
+      fi
+  HOSTNAME:
+    sh: echo $(hostname)
+
+tasks:
+  all:
+    desc: Install all prerequisites
+    summary: |
+      Install all prerequisites including:
+      containerlab
+      docker
+      uv
+      and setting the /etc/hosts and ssh config for smooth lab access
+    deps:
+      - packages
+    cmds:
+      - task: docker
+      - task: containerlab
+      - task: set:hosts
+      - task: set:ssh_config
+      - task: uv:sync
+      - task: final-words
+
+  uv:
+    desc: install uv
+    silent: true
+    status:
+      - test -f {{.UV_PATH}}
+    cmds:
+      - curl -LsSf https://astral.sh/uv/install.sh | sh
+      - task: uv:completion
+
+  uv:completion:
+    desc: install uv bash completion
+    status:
+      - grep -q 'uv generate-shell-completion bash' ~/.bashrc
+    cmds:
+      - echo 'eval "$(uv generate-shell-completion bash)"' >> ~/.bashrc
+      - echo 'eval "$(uvx --generate-shell-completion bash)"' >> ~/.bashrc
+
+  uv:sync:
+    desc: Initialize the python environment
+    deps:
+      - uv
+    cmds:
+      - "{{.UV_PATH}} sync"
+
+  packages:update:
+    desc: update packages
+    run: once
+    silent: true
+    cmds:
+      - sudo apt -qq update
+
+  packages:
+    desc: install packages
+    silent: true
+    deps:
+      - packages:update
+    cmds:
+      - sudo apt-get -y -qq dist-upgrade
+      - sudo apt-get -y -qq install
+        bash-completion
+        apt-transport-https
+        ca-certificates
+        curl
+        gnupg-agent
+        iputils-ping
+        lsb-release
+        git
+        python3-venv
+        wget
+      - |
+        if [[ "{{.LINUX_TYPE | lower}}" == "ubuntu" ]]; then
+          sudo apt -y -qq install software-properties-common
+        fi
+
+  docker:
+    desc: install docker
+    status:
+      - command -v docker
+      - docker compose version
+    deps:
+      - packages:update
+    cmds:
+      - sudo sh -c "$(curl -sL https://get.docker.com)"
+      - sudo apt-get install -y -qq docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      - sudo usermod -aG docker $USER
+      # - newgrp docker # forks a new shell with the new group, but does not persist after the task ends
+      # - echo "Logout and back in to have the new docker group enabled"
+
+  containerlab:
+    desc: install containerlab
+    status:
+      - containerlab version
+    cmds:
+      - bash -c "$(curl -sL https://get.containerlab.dev)"
+      - sudo usermod -aG clab_admins $USER
+      # - newgrp clab_admins # forks a new shell with the new group, but does not persist after the task ends
+      # - containerlab version
+
+  set:hosts:
+    desc: add hosts to /etc/hosts
+    status:
+      - grep -q "nautobotlab.dev" /etc/hosts
+    silent: true
+    cmds:
+      - sudo cp /etc/hosts /etc/hosts.backup.$(date +%Y%m%d_%H%M%S)
+      - |
+        cat << EOF | sudo tee /etc/hosts > /dev/null
+        127.0.1.1	{{.HOSTNAME}}
+        127.0.0.1	localhost
+        ::1		localhost ip6-localhost ip6-loopback
+        ff02::1		ip6-allnodes
+        ff02::2		ip6-allrouters
+
+        127.0.0.1    nautobotlab.dev
+        172.20.20.16    mgmt.lab mgmt
+        172.20.20.14    rtr1.lab rtr1
+        172.20.20.15    workstation1.lab workstation1
+        172.20.20.12    access2.lab access2
+        172.20.20.13    dist1.lab dist1
+        172.20.20.11    access1.lab access1
+        EOF
+
+  set:ssh_config:
+    desc: Set ssh config
+    vars:
+      SSH_DIR: $HOME/.ssh
+      SSH_CONFIG: "{{.SSH_DIR}}/config"
+      SSH_CONFIG_BAK:
+        sh: echo "{{.SSH_CONFIG}}.backup.$(date +%Y%m%d_%H%M%S)"
+    silent: true
+    cmds:
+      - mkdir -p {{.SSH_DIR}}
+      - chmod 700 {{.SSH_DIR}}
+      - |
+        if [ -f "{{.SSH_CONFIG}}" ]; then
+            sed -i.tmp '/# Nautobot Lab SSH Config - START/,/# Nautobot Lab SSH Config - END/d' "{{.SSH_CONFIG}}"
+            cp {{.SSH_CONFIG}} "{{.SSH_CONFIG_BAK}}"
+        fi
+      - |
+        cat > {{.SSH_CONFIG}} << SSHEOF
+        # Nautobot Lab SSH Config - START
+        # Network devices (Arista/Nokia)
+        Host access1 access1.lab
+            HostName 172.20.20.11
+            User admin
+            Port 22
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+
+        Host access2 access2.lab
+            HostName 172.20.20.12
+            User admin
+            Port 22
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+
+        Host dist1 dist1.lab
+            HostName 172.20.20.13
+            User admin
+            Port 22
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+
+        Host rtr1 rtr1.lab
+            HostName 172.20.20.14
+            User admin
+            Port 22
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+
+        # Linux containers (Alpine)
+        Host workstation1 workstation1.lab
+            HostName 172.20.20.15
+            User root
+            Port 22
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+
+        Host mgmt mgmt.lab
+            HostName 172.20.20.16
+            User root
+            Port 22
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+        # Nautobot Lab SSH Config - END
+        SSHEOF
+      - chmod 600 "{{.SSH_CONFIG}}"
+
+  desktop:
+    desc: Installing the Desktop env with vscode
+    deps:
+      - packages:update
+    cmds:
+      - sudo apt-get install -y xfce4 xfce4-terminal dbus-x11 xdg-utils x11-apps firefox
+      - sudo apt-get install -y wget gpg apt-transport-https
+      - sudo systemctl set-default multi-user.target
+      - for: [lightdm, gdm, gdm3, sddm, xdm]
+        cmd: sudo systemctl stop {{.ITEM}}
+        ignore_error: true
+      - for: [lightdm, gdm, gdm3, sddm, xdm]
+        cmd: sudo systemctl disable {{.ITEM}}
+        ignore_error: true
+      - cmd: sudo apt-get remove -y lightdm lightdm-gtk-greeter gdm3
+        ignore_error: true
+      - task: desktop:vscode
+
+  desktop:vscode:clean:
+    desc: Clean vscode elements
+    cmds:
+      # - echo "  Cleaning up old VS Code repository entries..."
+      - sudo rm -f /etc/apt/sources.list.d/vscode.list*
+      - sudo rm -f /etc/apt/sources.list.d/*microsoft*.list*
+      - sudo rm -f /etc/apt/keyrings/packages.microsoft.gpg
+      - sudo rm -f /etc/apt/keyrings/microsoft.gpg
+      - sudo rm -f /usr/share/keyrings/packages.microsoft.gpg
+      - sudo rm -f /usr/share/keyrings/microsoft.gpg
+
+  desktop:vscode:
+    desc: Install vscode
+    deps:
+      - packages:update
+    cmds:
+      - sudo apt-get install -y gpg
+      - sudo mkdir -p /etc/apt/keyrings
+      - wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
+      - sudo install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
+      - rm packages.microsoft.gpg
+
+      - echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" | sudo tee /etc/apt/sources.list.d/vscode.list > /dev/null
+      - sudo apt-get install -y code
+
+      - mkdir -p ~/.local/share/applications
+      # Create desktop file for ssh:// protocol handler
+      - |
+        cat > ~/.local/share/applications/ssh-handler.desktop << 'EOF'
+        [Desktop Entry]
+        Type=Application
+        Name=SSH Protocol Handler
+        Exec=xfce4-terminal -e "bash -c 'ssh %u; exec bash'"
+        Terminal=false
+        MimeType=x-scheme-handler/ssh
+        NoDisplay=true
+        EOF
+
+      # Update desktop database
+      - update-desktop-database ~/.local/share/applications/
+
+      -  # Set as default handler for ssh:// links
+      - xdg-mime default ssh-handler.desktop x-scheme-handler/ssh
+      - echo "[INFO] ssh:// protocol handler configured!"
+      - echo "  You can now click ssh://admin@access1 links to open SSH in terminal"
+
+  final-words:
+    desc: final words
+    internal: true
+    silent: true
+    cmds:
+      - |
+        echo "=================================================="
+        echo "installation completed!"
+        echo "Logout and back in to have all settings, paths and group memberships enabled"
+        echo ""

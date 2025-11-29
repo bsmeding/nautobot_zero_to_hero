@@ -75,6 +75,15 @@ cd nautobot_zero_to_hero
 
 Use the automated installation script to install all prerequisites:
 
+> **Note:** installing this setup in an "Linux Machine" using Orbstack is possible as well. The following procedure is recommended to work smoothly with the docker group setup.
+> 1. Create the Linux Machine in Orbstack
+> 2. SSH into the Linux Machine using the terminal
+> 3. Navigate to the folder e.g. `/Users/your-mac-username/git/nautobot_zero_to_hero`
+> 4. Run the installation script as shown below `bash install.sh`
+> 5. Once done, exit the ssh session.
+> 6. Now you can access the host using vscode and the remote ssh extension.
+
+
 ```bash
 # Standard installation (Docker, Containerlab, /etc/hosts)
 bash install.sh
@@ -100,7 +109,7 @@ INSTALL_DESKTOP=true bash install.sh
 
 **When to install desktop:**
 - ✅ If using WSL and want GUI support
-- ✅ If you want clickable ssh:// links  
+- ✅ If you want clickable ssh:// links
 - ✅ If you prefer graphical tools
 - ❌ Skip if using headless server
 - ❌ Skip if you only use command-line tools
@@ -319,7 +328,7 @@ media/
 - Permission denied when uploading device images
 - Missing directories cause job failures
 
-**The Solution**: 
+**The Solution**:
 - **Init Container**: Lightweight Alpine container creates directories
 - **Proper Dependencies**: Main services wait for init completion
 - **No Database Dependency**: Alpine avoids PostgreSQL connection issues
@@ -401,12 +410,12 @@ The Job template equivalent is provided in `scripts/6_transform_to_nautobot_job.
    ```python
    # jobs/jobs/my_custom_job.py
    from nautobot.extras.jobs import Job
-   
+
    class MyCustomJob(Job):
        class Meta:
            name = "My Custom Job"
            description = "Description of what this job does"
-   
+
        def run(self, data, commit):
            self.log_info("Running my custom job...")
            # Your job logic here
@@ -466,11 +475,11 @@ class MyDeviceHook(JobHookReceiver):
         name = "My Device Hook"
         description = "Run on Device create/update/delete"
         object_type = Device
-    
+
     def run(self, commit, **kwargs):
         action = kwargs.get("action")  # "created", "updated", "deleted"
         object_pk = kwargs.get("object_pk")
-        
+
         if action == "created":
             self.log_success(f"Device created: {object_pk}")
             # Your automation logic here
@@ -499,7 +508,7 @@ Both the **Preflight Lab Setup** and **Design Builder Lab Setup** jobs create id
 #### Created Config Contexts:
 1. **Lab Common Configuration** (weight 1000) - NTP, DNS, Syslog, SNMP, timezone
 2. **Arista Platform Configuration** (weight 2000) - Arista EOS specific settings
-3. **Nokia Platform Configuration** (weight 2000) - Nokia SR Linux specific settings  
+3. **Nokia Platform Configuration** (weight 2000) - Nokia SR Linux specific settings
 4. **Access Switch Role Configuration** (weight 3000) - Role-based settings
 
 #### Example Usage in Templates:
@@ -565,7 +574,7 @@ A ready-to-use job that configures devices using config context data:
 The included Containerlab lab provides a multi-vendor test environment:
 
 - **Cisco IOS**: cisco_ios devices
-- **Arista EOS**: arista_eos devices  
+- **Arista EOS**: arista_eos devices
 - **Juniper vSRX**: juniper_vsrx devices
 - **Linux hosts**: linux hosts for testing
 

@@ -1,0 +1,19 @@
+[project]
+name = "nautobot-zero-to-hero"
+version = "0.1.0"
+description = "A Nautobot zero to hero guide with practical examples."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "jinja2>=3.1.6",
+    "napalm>=5.1.0",
+    "napalm-srl>=1.0.5",
+    "nautobot>=3.0.0",
+    "netmiko>=4.6.0",
+    "pandas>=2.3.3",
+    "paramiko>=4.0.0",
+    "pyats>=25.10",
+    "pyeapi>=1.0.4",
+    "requests>=2.32.5",
+    "tabulate>=0.9.0",
+]

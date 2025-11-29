@@ -21,12 +21,21 @@ This lab is configured to ensure everyone gets the same devices and IP addresses
 ## 🚀 **How to Deploy**
 
 ### **1. Prerequisites:**
+Download ceos image
+
+* [Arista software downloads](https://www.arista.com/en/support/software-download)
+* [download ceos:4.34.2F](https://www.arista.com/surl/ad4NPr05Bc)
+
+
 ```bash
 # Install containerlab
 curl -sL https://get.containerlab.dev | bash
 
+# Import downloaded ceos image
+docker import cEOS64-lab-4.34.2F.tar.xz ceos:4.34.2F
+
 # Pull required images
-docker pull ceos:4.34.2F
+
 docker pull ghcr.io/nokia/srlinux
 docker pull alpine:latest
 ```
