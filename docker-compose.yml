@@ -9,7 +9,7 @@ services:
 
   nautobot:
     container_name: ${NAUTOBOT_CONTAINER_NAME:-nzth-nautobot}
-    image: &shared_image bsmeding/nautobot:2.4.19-py3.11
+    image: &shared_image bsmeding/nautobot:3.0.2-py3.11
     depends_on:
       postgres:
         condition: "service_healthy"
